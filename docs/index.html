@@ -152,49 +152,34 @@
       <section class="lg:col-span-7 bg-darkbg-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
         <form id="actionForm" class="space-y-6">
 
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label for="switchHostname" class="block text-sm font-semibold text-slate-200">
-                Switch Hostname(s) / IP Address(es)
-              </label>
-              <div class="flex items-center gap-2">
-                <span id="deviceCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-mono">0 devices</span>
-                <span id="ipIndicator" class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono hidden">Valid IPs</span>
-              </div>
+          <!-- Blocks Header & Controls -->
+          <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+            <div>
+              <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                Target Device Blocks
+                <span id="blocksCountBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 font-mono">1 / 10 Blocks</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Configure up to 10 device groups, each with its own target devices and commands.</p>
             </div>
-            <div class="relative">
-              <textarea id="switchHostname" rows="2" required placeholder="e.g. 192.168.72.128, 192.168.72.129&#10;or separate with newlines" class="w-full bg-darkbg-900 border border-slate-700 rounded-xl px-4 py-3 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition resize-y"></textarea>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-1">Supports single or multiple switches separated by commas, spaces, or newlines.</p>
+            <button id="addBlockBtn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-600 hover:bg-orange-500 text-white shadow-md shadow-orange-600/20 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add Block
+            </button>
           </div>
 
-          <!-- Command Selector -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label for="switchCommand" class="block text-sm font-semibold text-slate-200">
-                Command to Execute
-              </label>
-              <span class="text-xs text-slate-400">CLI Show/Exec Command</span>
-            </div>
+          <!-- Dynamic Blocks Container -->
+          <div id="blocksContainer" class="space-y-5">
+            <!-- Dynamically populated by app.js -->
+          </div>
 
-            <div class="relative">
-              <textarea id="switchCommand" rows="3" required placeholder="e.g. show version" class="w-full bg-darkbg-900 border border-slate-700 rounded-xl px-4 py-3 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition resize-none"></textarea>
+          <!-- Total Execution Overview -->
+          <div class="p-3.5 rounded-xl bg-darkbg-900 border border-slate-700/60 flex items-center justify-between text-xs font-mono">
+            <div class="flex items-center gap-3 text-slate-300">
+              <span>Total Blocks: <strong id="totalBlocksSummary" class="text-orange-400">1</strong></span>
+              <span class="text-slate-600">•</span>
+              <span>Total Devices: <strong id="totalDevicesSummary" class="text-orange-400">0</strong></span>
             </div>
-
-            <!-- Quick Presets Chips -->
-            <div class="mt-3">
-              <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Quick Presets</p>
-              <div class="flex flex-wrap gap-2">
-                <button type="button" class="preset-btn px-2.5 py-1 rounded-md text-xs font-mono bg-slate-800 hover:bg-slate-700 hover:text-orange-400 text-slate-300 border border-slate-700 transition" data-cmd="show version">show version</button>
-                <button type="button" class="preset-btn px-2.5 py-1 rounded-md text-xs font-mono bg-slate-800 hover:bg-slate-700 hover:text-orange-400 text-slate-300 border border-slate-700 transition" data-cmd="show running-config">show running-config</button>
-                <button type="button" class="preset-btn px-2.5 py-1 rounded-md text-xs font-mono bg-slate-800 hover:bg-slate-700 hover:text-orange-400 text-slate-300 border border-slate-700 transition" data-cmd="show vlan">show vlan</button>
-                <button type="button" class="preset-btn px-2.5 py-1 rounded-md text-xs font-mono bg-slate-800 hover:bg-slate-700 hover:text-orange-400 text-slate-300 border border-slate-700 transition" data-cmd="show interface brief">show interface brief</button>
-                <button type="button" class="preset-btn px-2.5 py-1 rounded-md text-xs font-mono bg-slate-800 hover:bg-slate-700 hover:text-orange-400 text-slate-300 border border-slate-700 transition" data-cmd="show lldp info remote-device">show lldp info</button>
-                <button type="button" class="preset-btn px-2.5 py-1 rounded-md text-xs font-mono bg-slate-800 hover:bg-slate-700 hover:text-orange-400 text-slate-300 border border-slate-700 transition" data-cmd="show mac-address-table">show mac-address</button>
-                <button type="button" class="preset-btn px-2.5 py-1 rounded-md text-xs font-mono bg-slate-800 hover:bg-slate-700 hover:text-orange-400 text-slate-300 border border-slate-700 transition" data-cmd="show ip route">show ip route</button>
-                <button type="button" class="preset-btn px-2.5 py-1 rounded-md text-xs font-mono bg-slate-800 hover:bg-slate-700 hover:text-orange-400 text-slate-300 border border-slate-700 transition" data-cmd="show environment">show environment</button>
-              </div>
-            </div>
+            <span class="text-[11px] text-slate-500">Max 10 blocks supported</span>
           </div>
 
           <!-- Execution Environment & Workflow Details -->
@@ -217,7 +202,7 @@
           </div>
 
           <!-- Submit Button -->
-          <div class="pt-4">
+          <div class="pt-2">
             <button id="dispatchBtn" type="submit" class="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-semibold text-sm shadow-lg shadow-orange-500/25 transition duration-200 flex items-center justify-center gap-2 group">
               <svg id="dispatchSpinner" class="w-5 h-5 animate-spin hidden" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -266,11 +251,15 @@
                   <span id="runStatusBadge" class="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Queued</span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-xs text-slate-400">Target</span>
-                  <span id="runTargetBadge" class="text-xs font-mono text-slate-200">10.0.0.1</span>
+                  <span class="text-xs text-slate-400">Configured Blocks</span>
+                  <span id="runBlocksBadge" class="text-xs font-mono text-slate-200">1 Block</span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-xs text-slate-400">Command</span>
+                  <span class="text-xs text-slate-400">Target Devices</span>
+                  <span id="runTargetBadge" class="text-xs font-mono text-slate-200">1 Device</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-slate-400">Commands</span>
                   <span id="runCommandBadge" class="text-xs font-mono text-orange-400 truncate max-w-[180px]">show version</span>
                 </div>
                 <div class="flex items-center justify-between">

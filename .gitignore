@@ -3,6 +3,10 @@ ansible-paolo/
 
 # Ansible execution artifacts
 *_output.txt
+*_error.txt
+dynamic_inventory.ini
+dynamic_playbook.yml
+summary_blocks.json
 *.retry
 *.log
 .cache/

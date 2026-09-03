@@ -115,12 +115,14 @@ ROM: Version FL.01.08
 ## 🖥️ Running Workflows
 
 ### Option A: From the Web Interface (Recommended)
-1. Open your GitHub Pages URL (or open `docs/index.html` locally).
-2. Enter one or multiple switch IPs/hostnames (e.g. `192.168.72.128, 192.168.72.129` or separate with newlines).
-3. Click a command preset button (e.g. `show version`, `show running-config`, `show vlan`, etc.) or type a custom command.
-4. Choose the runner (`self-hosted` for internal network switches or `ubuntu-latest`).
-5. Click **Initiate Action Workflow**.
-6. Watch the live status tracker poll the run, then click **Open GitHub Step Summary & Logs** to view output for each switch!
+1. Open your GitHub Pages URL: **[https://paolofusc.github.io/ansible/](https://paolofusc.github.io/ansible/)** (or open `docs/index.html` locally).
+2. Configure up to **10 Device Blocks**:
+   - **Block 1**: Enter target IPs/hostnames (e.g. `192.168.72.128`), and select commands (e.g. `show version`, `show vlan`).
+   - Click **+ Add Block** to create **Block 2**, specify different switch IPs, and assign different commands (e.g. `show interface brief`).
+   - Repeat for up to 10 independent blocks!
+3. Choose the runner (`self-hosted` for internal network switches or `ubuntu-latest`).
+4. Click **Initiate Action Workflow**.
+5. Watch the live status tracker poll the run, then click **Open GitHub Step Summary & Logs** to view output categorized per device and command!
 
 ### Option B: From the GitHub Actions UI
 1. Go to the **Actions** tab in your repository.

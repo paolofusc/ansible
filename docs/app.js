@@ -1,5 +1,17 @@
-// Aruba AOS-CX Ansible Dispatcher Web App
+// Aruba AOS-CX Ansible Multi-Block Dispatcher Web App
 document.addEventListener('DOMContentLoaded', () => {
+  const MAX_BLOCKS = 10;
+  const PRESET_COMMANDS = [
+    'show version',
+    'show running-config',
+    'show vlan',
+    'show interface brief',
+    'show lldp info remote-device',
+    'show mac-address-table',
+    'show ip route',
+    'show environment'
+  ];
+
   // DOM Elements
   const settingsPanel = document.getElementById('settingsPanel');
   const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
@@ -16,10 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const repoLink = document.getElementById('repoLink');
 
   const actionForm = document.getElementById('actionForm');
-  const switchHostname = document.getElementById('switchHostname');
-  const ipIndicator = document.getElementById('ipIndicator');
-  const deviceCountBadge = document.getElementById('deviceCountBadge');
-  const switchCommand = document.getElementById('switchCommand');
+  const blocksContainer = document.getElementById('blocksContainer');
+  const addBlockBtn = document.getElementById('addBlockBtn');
+  const blocksCountBadge = document.getElementById('blocksCountBadge');
+  const totalBlocksSummary = document.getElementById('totalBlocksSummary');
+  const totalDevicesSummary = document.getElementById('totalDevicesSummary');
+
   const runnerType = document.getElementById('runnerType');
   const workflowFile = document.getElementById('workflowFile');
   const dispatchBtn = document.getElementById('dispatchBtn');
@@ -33,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const runStatusDot = document.getElementById('runStatusDot');
   const runTimer = document.getElementById('runTimer');
   const runStatusBadge = document.getElementById('runStatusBadge');
+  const runBlocksBadge = document.getElementById('runBlocksBadge');
   const runTargetBadge = document.getElementById('runTargetBadge');
   const runCommandBadge = document.getElementById('runCommandBadge');
   const runIdBadge = document.getElementById('runIdBadge');
@@ -45,6 +60,21 @@ document.addEventListener('DOMContentLoaded', () => {
   let pollingInterval = null;
   let timerInterval = null;
   let runStartTime = null;
+
+  // Blocks State
+  let blocks = [
+    {
+      id: generateId(),
+      name: 'Block 1',
+      devices: '192.168.72.128',
+      selectedPresets: ['show version'],
+      customCommands: ''
+    }
+  ];
+
+  function generateId() {
+    return 'block_' + Math.random().toString(36).substring(2, 9);
+  }
 
   // 1. Initialize & Auto-detect Repo settings
   function initConfig() {
@@ -75,6 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       settingsPanel.classList.remove('hidden');
     }
+
+    renderBlocks();
   }
 
   function updateConfigUI(owner, repo, token) {
@@ -124,11 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   toggleTokenVisibility.addEventListener('click', () => {
-    if (githubTokenInput.type === 'password') {
-      githubTokenInput.type = 'text';
-    } else {
-      githubTokenInput.type = 'password';
-    }
+    githubTokenInput.type = githubTokenInput.type === 'password' ? 'text' : 'password';
   });
 
   clearTokenBtn.addEventListener('click', () => {
@@ -138,14 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateConfigUI(repoOwnerInput.value.trim(), repoNameInput.value.trim(), '');
   });
 
-  // 3. Preset Buttons
-  document.querySelectorAll('.preset-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      switchCommand.value = btn.dataset.cmd;
-      switchCommand.focus();
-    });
-  });
-
+  // 3. Helper: Parse Devices
   function parseDevices(raw) {
     if (!raw) return [];
     return raw
@@ -156,39 +177,262 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(Boolean);
   }
 
-  // 4. IP Validator & Multi-device Indicator
-  switchHostname.addEventListener('input', () => {
-    const devices = parseDevices(switchHostname.value);
-    const count = devices.length;
+  // 4. Render Blocks UI
+  function renderBlocks() {
+    blocksContainer.innerHTML = '';
 
-    if (deviceCountBadge) {
-      deviceCountBadge.textContent = count === 1 ? '1 device' : `${count} devices`;
-      if (count > 0) {
-        deviceCountBadge.classList.add('text-orange-400', 'border-orange-500/30', 'bg-orange-500/10');
-        deviceCountBadge.classList.remove('text-slate-400', 'border-slate-700', 'bg-slate-800');
-      } else {
-        deviceCountBadge.classList.remove('text-orange-400', 'border-orange-500/30', 'bg-orange-500/10');
-        deviceCountBadge.classList.add('text-slate-400', 'border-slate-700', 'bg-slate-800');
-      }
+    blocks.forEach((block, index) => {
+      const blockIndex = index + 1;
+      const parsedDevs = parseDevices(block.devices);
+      const customCmdCount = (block.customCommands || '').split('\n').filter(c => c.trim()).length;
+      const totalCmdCount = block.selectedPresets.length + customCmdCount;
+
+      const card = document.createElement('div');
+      card.className = 'bg-darkbg-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-lg relative group transition hover:border-slate-600';
+      card.id = `card_${block.id}`;
+
+      card.innerHTML = `
+        <!-- Block Card Header -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+          <div class="flex items-center space-x-3">
+            <span class="w-6 h-6 rounded-lg bg-orange-600/20 text-orange-400 border border-orange-500/30 flex items-center justify-center text-xs font-mono font-bold">
+              ${blockIndex}
+            </span>
+            <input type="text" value="${escapeHtml(block.name)}" 
+              data-id="${block.id}" 
+              class="block-name-input bg-transparent font-semibold text-sm text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-orange-500 focus:outline-none transition px-1 py-0.5" 
+              placeholder="Block Name (e.g. Core Switches)">
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <span class="text-xs px-2 py-0.5 rounded-full font-mono ${parsedDevs.length > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500 border border-slate-700'}">
+              ${parsedDevs.length} ${parsedDevs.length === 1 ? 'device' : 'devices'}
+            </span>
+            <span class="text-xs px-2 py-0.5 rounded-full font-mono ${totalCmdCount > 0 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : 'bg-slate-800 text-slate-500 border border-slate-700'}">
+              ${totalCmdCount} ${totalCmdCount === 1 ? 'cmd' : 'cmds'}
+            </span>
+
+            <button type="button" class="duplicate-block-btn p-1 text-slate-400 hover:text-slate-200 transition" data-id="${block.id}" title="Duplicate this block">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+            </button>
+
+            ${blocks.length > 1 ? `
+            <button type="button" class="delete-block-btn p-1 text-slate-400 hover:text-red-400 transition" data-id="${block.id}" title="Delete this block">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>` : ''}
+          </div>
+        </div>
+
+        <!-- Target Devices Textarea -->
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+            <span>Target Switches / Hostnames</span>
+            <span class="text-[11px] font-normal text-slate-500">Comma, space, or newline separated</span>
+          </label>
+          <textarea rows="2" 
+            data-id="${block.id}" 
+            class="block-devices-input w-full bg-darkbg-800 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition resize-y" 
+            placeholder="e.g. 192.168.72.128, 192.168.72.129&#10;switch-core-01">${escapeHtml(block.devices)}</textarea>
+        </div>
+
+        <!-- Commands Selection -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-2">
+            Commands for this Block
+          </label>
+
+          <!-- Preset Chips (Multi-Select) -->
+          <div class="flex flex-wrap gap-1.5 mb-2.5">
+            ${PRESET_COMMANDS.map(cmd => {
+              const isSelected = block.selectedPresets.includes(cmd);
+              return `
+                <button type="button" 
+                  data-id="${block.id}" 
+                  data-cmd="${escapeHtml(cmd)}" 
+                  class="preset-chip px-2.5 py-1 rounded-lg text-xs font-mono transition border ${
+                    isSelected 
+                      ? 'bg-orange-500/20 text-orange-400 border-orange-500/40 font-semibold shadow-sm shadow-orange-500/10' 
+                      : 'bg-darkbg-800 text-slate-400 border-slate-700 hover:text-slate-200 hover:border-slate-600'
+                  }">
+                  ${isSelected ? '✓ ' : ''}${cmd}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Custom Commands Input -->
+          <div class="mt-2">
+            <input type="text" 
+              data-id="${block.id}" 
+              value="${escapeHtml(block.customCommands)}"
+              placeholder="Additional custom CLI commands (separate with comma or newline)" 
+              class="block-custom-commands w-full bg-darkbg-800 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500 transition">
+          </div>
+        </div>
+      `;
+
+      blocksContainer.appendChild(card);
+    });
+
+    attachBlockEvents();
+    updateGrandTotals();
+  }
+
+  function attachBlockEvents() {
+    // Block Name edits
+    document.querySelectorAll('.block-name-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const id = e.target.dataset.id;
+        const block = blocks.find(b => b.id === id);
+        if (block) block.name = e.target.value;
+      });
+    });
+
+    // Devices Textarea edits
+    document.querySelectorAll('.block-devices-input').forEach(textarea => {
+      textarea.addEventListener('input', (e) => {
+        const id = e.target.dataset.id;
+        const block = blocks.find(b => b.id === id);
+        if (block) {
+          block.devices = e.target.value;
+          updateGrandTotals();
+        }
+      });
+    });
+
+    // Preset Command Chips Toggle
+    document.querySelectorAll('.preset-chip').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = btn.dataset.id;
+        const cmd = btn.dataset.cmd;
+        const block = blocks.find(b => b.id === id);
+        if (block) {
+          if (block.selectedPresets.includes(cmd)) {
+            block.selectedPresets = block.selectedPresets.filter(c => c !== cmd);
+          } else {
+            block.selectedPresets.push(cmd);
+          }
+          renderBlocks();
+        }
+      });
+    });
+
+    // Custom Commands edits
+    document.querySelectorAll('.block-custom-commands').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const id = e.target.dataset.id;
+        const block = blocks.find(b => b.id === id);
+        if (block) {
+          block.customCommands = e.target.value;
+          updateGrandTotals();
+        }
+      });
+    });
+
+    // Duplicate Block
+    document.querySelectorAll('.duplicate-block-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (blocks.length >= MAX_BLOCKS) {
+          showToast(`Maximum ${MAX_BLOCKS} blocks reached.`, 'error');
+          return;
+        }
+        const id = btn.dataset.id;
+        const block = blocks.find(b => b.id === id);
+        if (block) {
+          const newBlock = {
+            id: generateId(),
+            name: `${block.name} (Copy)`,
+            devices: block.devices,
+            selectedPresets: [...block.selectedPresets],
+            customCommands: block.customCommands
+          };
+          blocks.push(newBlock);
+          renderBlocks();
+          showToast(`Block cloned (Total: ${blocks.length})`, 'info');
+        }
+      });
+    });
+
+    // Delete Block
+    document.querySelectorAll('.delete-block-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (blocks.length <= 1) return;
+        const id = btn.dataset.id;
+        blocks = blocks.filter(b => b.id !== id);
+        renderBlocks();
+        showToast('Block removed', 'info');
+      });
+    });
+  }
+
+  // 5. Add Block Handler
+  addBlockBtn.addEventListener('click', () => {
+    if (blocks.length >= MAX_BLOCKS) {
+      showToast(`Maximum limit of ${MAX_BLOCKS} device blocks reached.`, 'error');
+      return;
     }
+    const nextNum = blocks.length + 1;
+    blocks.push({
+      id: generateId(),
+      name: `Block ${nextNum}`,
+      devices: '',
+      selectedPresets: ['show version'],
+      customCommands: ''
+    });
+    renderBlocks();
+    showToast(`Added Block ${nextNum}`, 'success');
 
-    const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    const allIps = count > 0 && devices.every(d => ipv4Regex.test(d));
-
-    if (allIps) {
-      ipIndicator.classList.remove('hidden');
-    } else {
-      ipIndicator.classList.add('hidden');
+    // Scroll down to newly added block
+    const lastCard = blocksContainer.lastElementChild;
+    if (lastCard) {
+      lastCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   });
 
-  // 5. Action Dispatcher
+  function updateGrandTotals() {
+    let totalDevices = 0;
+    blocks.forEach(b => {
+      totalDevices += parseDevices(b.devices).length;
+    });
+
+    blocksCountBadge.textContent = `${blocks.length} / ${MAX_BLOCKS} Blocks`;
+    totalBlocksSummary.textContent = blocks.length;
+    totalDevicesSummary.textContent = totalDevices;
+
+    if (blocks.length >= MAX_BLOCKS) {
+      addBlockBtn.disabled = true;
+      addBlockBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      addBlockBtn.innerHTML = `Max ${MAX_BLOCKS} Blocks`;
+    } else {
+      addBlockBtn.disabled = false;
+      addBlockBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      addBlockBtn.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add Block
+      `;
+    }
+
+    dispatchBtnText.textContent = `Initiate Action Workflow (${blocks.length} ${blocks.length === 1 ? 'Block' : 'Blocks'})`;
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, m => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[m]));
+  }
+
+  // 6. Action Dispatcher (Multi-Block)
   actionForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const owner = localStorage.getItem('ansible_gh_owner') || repoOwnerInput.value.trim();
     const repo = localStorage.getItem('ansible_gh_repo') || repoNameInput.value.trim();
-    const branch = localStorage.getItem('ansible_gh_branch') || workflowBranchInput.value.trim() || 'main';
+    const branch = workflowBranchInput.value.trim() || 'main';
     const token = localStorage.getItem('ansible_gh_token') || githubTokenInput.value.trim();
 
     if (!owner || !repo) {
@@ -203,19 +447,50 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const devices = parseDevices(switchHostname.value);
-    if (devices.length === 0) {
-      showToast('Please specify at least one target switch IP or hostname.', 'error');
-      switchHostname.focus();
-      return;
+    // Validate blocks
+    const compiledBlocks = [];
+    let totalDeviceCount = 0;
+    let totalCommandCount = 0;
+
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      const devs = parseDevices(b.devices);
+      if (devs.length === 0) {
+        showToast(`Please enter target switch IPs for ${b.name || 'Block ' + (i + 1)}.`, 'error');
+        const card = document.getElementById(`card_${b.id}`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth' });
+          card.querySelector('.block-devices-input').focus();
+        }
+        return;
+      }
+
+      // Parse custom commands
+      const customCmds = (b.customCommands || '')
+        .replace(/[\r\n]+/g, ',')
+        .split(',')
+        .map(c => c.trim())
+        .filter(Boolean);
+
+      const allCmds = Array.from(new Set([...b.selectedPresets, ...customCmds]));
+      if (allCmds.length === 0) {
+        showToast(`Please select or enter at least one command for ${b.name || 'Block ' + (i + 1)}.`, 'error');
+        return;
+      }
+
+      totalDeviceCount += devs.length;
+      totalCommandCount += allCmds.length;
+
+      compiledBlocks.push({
+        name: b.name || `Block ${i + 1}`,
+        devices: devs,
+        commands: allCmds
+      });
     }
 
-    const cleanHostList = devices.join(', ');
-    const command = switchCommand.value.trim();
     const runner = runnerType.value;
     const workflow = workflowFile.value.trim();
 
-    // Disable button & show spinner
     setDispatchingState(true);
 
     try {
@@ -231,8 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           ref: branch,
           inputs: {
-            hostname: cleanHostList,
-            command: command,
+            blocks_json: JSON.stringify(compiledBlocks),
             runner_type: runner
           }
         })
@@ -243,8 +517,8 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(errorData.message || `GitHub API error: ${response.status} ${response.statusText}`);
       }
 
-      showToast(`Action dispatched for ${devices.length} device(s)!`, 'success');
-      startTrackingRun(owner, repo, token, cleanHostList, command);
+      showToast(`Action dispatched for ${compiledBlocks.length} block(s) across ${totalDeviceCount} device(s)!`, 'success');
+      startTrackingRun(owner, repo, token, compiledBlocks.length, totalDeviceCount, totalCommandCount);
 
     } catch (err) {
       console.error(err);
@@ -266,19 +540,20 @@ document.addEventListener('DOMContentLoaded', () => {
       dispatchBtn.classList.remove('opacity-75', 'cursor-not-allowed');
       dispatchSpinner.classList.add('hidden');
       dispatchIcon.classList.remove('hidden');
-      dispatchBtnText.textContent = 'Initiate Action Workflow';
+      updateGrandTotals();
     }
   }
 
-  // 6. Run Tracking & Summary Polling
-  function startTrackingRun(owner, repo, token, hostname, command) {
-    // Reset tracker UI
+  // 7. Run Tracking & Polling
+  function startTrackingRun(owner, repo, token, blockCount, devCount, cmdCount) {
     trackerEmptyState.classList.add('hidden');
     trackerActiveState.classList.remove('hidden');
     activeRunCard.classList.add('running-glow');
 
-    runTargetBadge.textContent = hostname;
-    runCommandBadge.textContent = command;
+    runBlocksBadge.textContent = `${blockCount} ${blockCount === 1 ? 'Block' : 'Blocks'}`;
+    runTargetBadge.textContent = `${devCount} ${devCount === 1 ? 'Device' : 'Devices'}`;
+    runCommandBadge.textContent = `${cmdCount} ${cmdCount === 1 ? 'Command' : 'Commands'}`;
+
     runStatusBadge.textContent = 'Queued';
     runStatusBadge.className = 'text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20';
     runStatusDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
@@ -287,16 +562,14 @@ document.addEventListener('DOMContentLoaded', () => {
     viewRunLink.href = `https://github.com/${owner}/${repo}/actions`;
     viewSummaryLink.href = `https://github.com/${owner}/${repo}/actions`;
 
-    // Start timer
     if (timerInterval) clearInterval(timerInterval);
     runStartTime = Date.now();
     timerInterval = setInterval(updateTimer, 1000);
 
-    // Stop existing polling
     if (pollingInterval) clearInterval(pollingInterval);
 
     let attempts = 0;
-    const maxAttempts = 80; // ~4 minutes
+    const maxAttempts = 80;
 
     pollingInterval = setInterval(async () => {
       attempts++;
@@ -334,12 +607,12 @@ document.addEventListener('DOMContentLoaded', () => {
               runStatusBadge.textContent = 'Success ✅';
               runStatusBadge.className = 'text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
               runStatusDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
-              showToast('Ansible playbook completed successfully! Summary is ready.', 'success');
+              showToast('Ansible multi-block execution completed successfully!', 'success');
             } else {
-              runStatusBadge.textContent = `Failed (${latestRun.conclusion}) ❌`;
-              runStatusBadge.className = 'text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20';
-              runStatusDot.className = 'w-2 h-2 rounded-full bg-red-400';
-              showToast('Action execution failed. Check summary and logs.', 'error');
+              runStatusBadge.textContent = `Finished (${latestRun.conclusion}) ⚠️`;
+              runStatusBadge.className = 'text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20';
+              runStatusDot.className = 'w-2 h-2 rounded-full bg-amber-400';
+              showToast('Action execution finished. Check summary for details.', 'info');
             }
 
             fetchRecentRuns();
@@ -366,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
     runTimer.textContent = `${mins}:${secs}`;
   }
 
-  // 7. Recent Runs Fetcher
+  // 8. Recent Runs Fetcher
   async function fetchRecentRuns() {
     const owner = localStorage.getItem('ansible_gh_owner') || repoOwnerInput.value.trim();
     const repo = localStorage.getItem('ansible_gh_repo') || repoNameInput.value.trim();
@@ -385,9 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const res = await fetch(url, { headers });
-      if (!res.ok) {
-        throw new Error(`Failed to load runs: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Failed to load runs: ${res.status}`);
 
       const data = await res.json();
       const runs = data.workflow_runs || [];
@@ -409,7 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (run.conclusion === 'success') {
             badgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Success</span>';
           } else {
-            badgeHtml = `<span class="px-2 py-0.5 rounded text-[11px] bg-red-500/10 text-red-400 border border-red-500/20">${run.conclusion || 'Failed'}</span>`;
+            badgeHtml = `<span class="px-2 py-0.5 rounded text-[11px] bg-amber-500/10 text-amber-400 border border-amber-500/20">${run.conclusion || 'Failed'}</span>`;
           }
         } else if (run.status === 'in_progress') {
           badgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse">Running</span>';
@@ -441,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   refreshRunsBtn.addEventListener('click', fetchRecentRuns);
 
-  // 8. Toast Notification Utility
+  // 9. Toast Notification Utility
   function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');

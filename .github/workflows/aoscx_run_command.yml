@@ -3,13 +3,17 @@ name: Run AOS-CX Command
 on:
   workflow_dispatch:
     inputs:
+      blocks_json:
+        description: 'Multi-block configuration (JSON array containing up to 10 device blocks)'
+        required: false
+        type: string
       hostname:
-        description: 'Hostname(s) or IP(s) of the switch(es) (comma, space, or newline separated)'
-        required: true
+        description: 'Single-block fallback: Hostname(s) or IP(s)'
+        required: false
         type: string
       command:
-        description: 'Command to run'
-        required: true
+        description: 'Single-block fallback: Command to run'
+        required: false
         type: string
       runner_type:
         description: 'Runner environment'
@@ -30,12 +34,20 @@ jobs:
       - name: Set up Ansible (if ubuntu-latest)
         if: inputs.runner_type == 'ubuntu-latest'
         run: |
-          sudo apt-get update && sudo apt-get install -y python3-pip
+          sudo apt-get update && sudo apt-get install -y python3-pip python3-yaml
           pip install ansible-core paramiko
           ansible-galaxy collection install arubanetworks.aoscx
 
       - name: Check Ansible Version
         run: ansible-playbook --version
+
+      - name: Prepare Multi-Block Execution
+        env:
+          INPUT_BLOCKS_JSON: ${{ inputs.blocks_json }}
+          INPUT_HOSTNAME: ${{ inputs.hostname }}
+          INPUT_COMMAND: ${{ inputs.command }}
+        run: |
+          python3 src/prepare_execution.py
 
       - name: Run Ansible Playbook
         id: run_playbook
@@ -44,68 +56,14 @@ jobs:
           SSH_PASS: ${{ secrets.SSH_ANSIBLE_PASSWORD }}
           ANSIBLE_CONFIG: ${{ github.workspace }}/src/ansible.cfg
         run: |
-          # Normalize hosts input into a comma-separated list
-          HOST_LIST=$(echo "${{ inputs.hostname }}" | tr '\r\n' ',' | tr ' ' ',' | sed 's/,,*/,/g' | sed 's/^,//;s/,$//')
-          echo "Target hosts: $HOST_LIST"
-          echo "HOST_LIST=$HOST_LIST" >> $GITHUB_ENV
-          
-          ansible-playbook playbooks/run_command/aoscx_run_command.yml \
-            -i "${HOST_LIST}," \
-            -e "input_command='${{ inputs.command }}'" \
+          ansible-playbook -i dynamic_inventory.ini dynamic_playbook.yml \
             -e "ansible_user=$SSH_USER" \
             -e "ansible_password=$SSH_PASS"
 
       - name: Publish Results to GitHub Step Summary
         if: always()
+        env:
+          RUNNER_TYPE: ${{ inputs.runner_type }}
+          PLAYBOOK_OUTCOME: ${{ steps.run_playbook.outcome }}
         run: |
-          echo "## 🌐 Aruba AOS-CX Execution Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Target Switches** | \`${{ env.HOST_LIST || inputs.hostname }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Command** | \`${{ inputs.command }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Runner** | \`${{ inputs.runner_type }}\` |" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.run_playbook.outcome }}" = "success" ]; then
-            echo "| **Overall Status** | 🟢 **Success** |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| **Overall Status** | ⚠️ **Completed with warnings / errors** |" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          output_found=false
-          for file in *_output.txt; do
-            if [ -f "$file" ]; then
-              output_found=true
-              switch_name="${file%_output.txt}"
-              echo "### 📋 Output for \`$switch_name\`" >> $GITHUB_STEP_SUMMARY
-              echo "<details open><summary>Click to collapse output</summary>" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
-              cat "$file" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-              echo "</details>" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-
-          error_found=false
-          for errfile in *_error.txt; do
-            if [ -f "$errfile" ]; then
-              error_found=true
-              switch_name="${errfile%_error.txt}"
-              echo "### ⚠️ Execution Error for \`$switch_name\`" >> $GITHUB_STEP_SUMMARY
-              echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
-              echo "> " >> $GITHUB_STEP_SUMMARY
-              echo "> \`\`\`text" >> $GITHUB_STEP_SUMMARY
-              cat "$errfile" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "> \`\`\`" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-
-          if [ "$output_found" = false ] && [ "$error_found" = false ]; then
-            echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
-            echo "> No switch output files were captured. Please review the step logs above for execution details or SSH connection errors." >> $GITHUB_STEP_SUMMARY
-          fi
+          python3 src/publish_summary.py
