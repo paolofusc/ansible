@@ -1,339 +1,209 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aruba AOS-CX Ansible Dispatcher</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#fff7ed',
-              100: '#ffedd5',
-              500: '#f97316',
-              600: '#ea580c',
-              700: '#c2410c',
-            },
-            darkbg: {
-              900: '#0b0f19',
-              800: '#111827',
-              700: '#1f2937',
-              600: '#374151',
-            }
-          },
-          fontFamily: {
-            mono: ['JetBrains Mono', 'Fira Code', 'Courier New', 'monospace']
-          }
-        }
-      }
-    }
-  </script>
+  <title>Aruba AOS-CX Automation Portal</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-darkbg-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-orange-500 selection:text-white">
+<body>
 
-  <!-- Top Navigation -->
-  <header class="border-b border-slate-800/80 bg-darkbg-800/60 backdrop-blur-md sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20 text-white font-bold">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-          </svg>
-        </div>
-        <div>
-          <h1 class="text-base font-semibold text-white tracking-tight flex items-center gap-2">
-            Ansible Command Portal
-            <span class="text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">AOS-CX</span>
-          </h1>
-          <p class="text-xs text-slate-400">GitHub Actions Runner & Step Summary Interface</p>
-        </div>
+  <!-- Top Header -->
+  <header class="app-header">
+    <div class="brand-container">
+      <div class="brand-icon">&#9889;</div>
+      <div>
+        <div class="brand-title">Aruba AOS-CX Ansible Portal <span class="badge-tag">Offline-Ready</span></div>
+        <div class="brand-subtitle">Automated Action Runner &amp; Step Summary Interface</div>
       </div>
-
-      <div class="flex items-center space-x-3">
-        <button id="toggleSettingsBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
-          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-          <span id="settingsStatusText">Configure GitHub</span>
-        </button>
-        <a id="repoLink" href="https://github.com" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition p-2 rounded-lg hover:bg-slate-800" title="Open Repository on GitHub">
-          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-          </svg>
-        </a>
-      </div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button id="toggleSettingsBtn" type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+        &#9881; <span id="settingsStatusText">Configure GitHub</span>
+      </button>
+      <a id="repoLink" href="#" target="_blank" class="btn btn-secondary" style="padding: 6px 10px;" title="Open Repository">
+        &#128279;
+      </a>
     </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+  <!-- Main Content Container -->
+  <div class="app-container">
 
-    <!-- Toast Banner / Notification Container -->
-    <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+    <!-- Left Column: Form & Block Inputs -->
+    <div>
 
-    <!-- Collapsible Settings Panel -->
-    <section id="settingsPanel" class="bg-darkbg-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl relative overflow-hidden transition-all duration-300">
-      <div class="flex items-center justify-between border-b border-slate-700/60 pb-4 mb-5">
-        <div class="flex items-center space-x-2">
-          <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-          </svg>
-          <h2 class="text-lg font-semibold text-white">GitHub API Connection</h2>
+      <!-- Connection / Settings Card -->
+      <section id="settingsPanel" class="card">
+        <div class="card-header">
+          <div class="card-title">&#128273; GitHub Connection Settings</div>
+          <button id="closeSettingsBtn" type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;">Hide</button>
         </div>
-        <button id="closeSettingsBtn" class="text-slate-400 hover:text-slate-200">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-      </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5" for="repoOwner">Repository Owner</label>
-          <input type="text" id="repoOwner" value="paolofusc" placeholder="e.g. paolofusc" class="w-full bg-darkbg-900 border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 transition">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5" for="repoName">Repository Name</label>
-          <input type="text" id="repoName" value="ansible" placeholder="e.g. ansible" class="w-full bg-darkbg-900 border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 transition">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5" for="workflowBranch">Git Branch</label>
-          <input type="text" id="workflowBranch" value="main" placeholder="main" class="w-full bg-darkbg-900 border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 transition">
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <div class="flex items-center justify-between mb-1.5">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400" for="githubToken">
-            GitHub Personal Access Token (PAT)
-          </label>
-          <a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank" rel="noopener noreferrer" class="text-xs text-orange-400 hover:text-orange-300 underline flex items-center gap-1">
-            Generate fine-grained or classic token
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-          </a>
-        </div>
-        <div class="relative">
-          <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx or github_pat_xxxx" class="w-full bg-darkbg-900 border border-slate-700 rounded-lg px-3.5 py-2 pr-20 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 transition">
-          <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
-            <button id="toggleTokenVisibility" type="button" class="p-1.5 text-slate-400 hover:text-slate-200" title="Toggle visibility">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-              </svg>
-            </button>
-            <button id="clearTokenBtn" type="button" class="p-1.5 text-slate-400 hover:text-red-400" title="Clear token">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            </button>
+        <div class="grid-4">
+          <div class="form-group">
+            <label for="apiUrl">GitHub Server URL</label>
+            <input type="text" id="apiUrl" value="" placeholder="e.g. https://ghe.corp.com/api/v3">
+            <div class="helper-text">Leave blank or use api/v3 for Corporate GHE</div>
+          </div>
+          <div class="form-group">
+            <label for="repoOwner">Repository Owner</label>
+            <input type="text" id="repoOwner" value="" placeholder="e.g. username or org">
+          </div>
+          <div class="form-group">
+            <label for="repoName">Repository Name</label>
+            <input type="text" id="repoName" value="ansible" placeholder="ansible">
+          </div>
+          <div class="form-group">
+            <label for="workflowBranch">Branch</label>
+            <input type="text" id="workflowBranch" value="main" placeholder="main">
           </div>
         </div>
-        <p class="text-xs text-slate-400 mt-2 flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-          Token is stored safely in your browser's local storage and never transmitted to third parties. Only calls <code>api.github.com</code> directly. Required scope: <code>actions:write</code> or <code>workflow</code>.
-        </p>
-      </div>
 
-      <div class="mt-5 flex justify-end">
-        <button id="saveSettingsBtn" class="px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-medium text-xs uppercase tracking-wider rounded-lg shadow-md transition flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          Save Configuration
-        </button>
-      </div>
-    </section>
+        <div class="form-group" style="margin-top: 10px;">
+          <label for="githubToken">Personal Access Token (PAT)</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="password" id="githubToken" placeholder="Paste GitHub Token here (requires workflow or actions:write scope)" style="flex: 1;">
+            <button id="toggleTokenVisibility" type="button" class="btn btn-secondary" style="padding: 8px 12px;">Show</button>
+            <button id="clearTokenBtn" type="button" class="btn btn-danger" style="padding: 8px 12px;">Clear</button>
+          </div>
+          <div class="helper-text">&#128274; Token is saved only in your local browser storage.</div>
+        </div>
 
-    <!-- Main Grid: Dispatcher Form (Left) & Active Status / Summary (Right) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+          <button id="saveSettingsBtn" type="button" class="btn btn-primary" style="padding: 8px 18px;">
+            Save Settings
+          </button>
+        </div>
+      </section>
 
-      <!-- Left Column: Input Form -->
-      <section class="lg:col-span-7 bg-darkbg-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-        <form id="actionForm" class="space-y-6">
+      <!-- Multi-Block Form -->
+      <form id="actionForm">
 
-          <!-- Blocks Header & Controls -->
-          <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
-            <div>
-              <h2 class="text-base font-semibold text-white flex items-center gap-2">
-                Target Device Blocks
-                <span id="blocksCountBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 font-mono">1 / 10 Blocks</span>
-              </h2>
-              <p class="text-xs text-slate-400 mt-0.5">Configure up to 10 device groups, each with its own target devices and commands.</p>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              &#128421; Target Device Blocks
+              <span id="blocksCountBadge" class="badge-tag">1 / 10 Blocks</span>
             </div>
-            <button id="addBlockBtn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-600 hover:bg-orange-500 text-white shadow-md shadow-orange-600/20 transition">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-              Add Block
+            <button id="addBlockBtn" type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;">
+              + Add Block
             </button>
           </div>
 
           <!-- Dynamic Blocks Container -->
-          <div id="blocksContainer" class="space-y-5">
+          <div id="blocksContainer">
             <!-- Dynamically populated by app.js -->
           </div>
 
-          <!-- Total Execution Overview -->
-          <div class="p-3.5 rounded-xl bg-darkbg-900 border border-slate-700/60 flex items-center justify-between text-xs font-mono">
-            <div class="flex items-center gap-3 text-slate-300">
-              <span>Total Blocks: <strong id="totalBlocksSummary" class="text-orange-400">1</strong></span>
-              <span class="text-slate-600">•</span>
-              <span>Total Devices: <strong id="totalDevicesSummary" class="text-orange-400">0</strong></span>
+          <!-- Totals Bar -->
+          <div class="stats-bar">
+            <div>
+              Total Blocks: <strong id="totalBlocksSummary" style="color: var(--primary-hover);">1</strong> &bull;
+              Total Devices: <strong id="totalDevicesSummary" style="color: var(--primary-hover);">0</strong>
             </div>
-            <span class="text-[11px] text-slate-500">Max 10 blocks supported</span>
+            <div style="color: var(--text-dim); font-size: 11px;">Up to 10 blocks</div>
           </div>
 
-          <!-- Execution Environment & Workflow Details -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-700/60">
-            <div>
-              <label for="runnerType" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                Target Runner
-              </label>
-              <select id="runnerType" class="w-full bg-darkbg-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500">
-                <option value="self-hosted" selected>self-hosted (Recommended for internal switches)</option>
+          <!-- Execution Settings -->
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="runnerType">Runner Type</label>
+              <select id="runnerType">
+                <option value="self-hosted" selected>self-hosted (Corporate network runner)</option>
                 <option value="ubuntu-latest">ubuntu-latest (Cloud runner)</option>
               </select>
             </div>
-            <div>
-              <label for="workflowFile" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                GitHub Workflow
-              </label>
-              <input type="text" id="workflowFile" value="aoscx_run_command.yml" class="w-full bg-darkbg-900 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-slate-200 focus:outline-none focus:border-orange-500">
+            <div class="form-group">
+              <label for="workflowFile">Workflow File</label>
+              <input type="text" id="workflowFile" value="aoscx_run_command.yml">
             </div>
           </div>
 
           <!-- Submit Button -->
-          <div class="pt-2">
-            <button id="dispatchBtn" type="submit" class="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-semibold text-sm shadow-lg shadow-orange-500/25 transition duration-200 flex items-center justify-center gap-2 group">
-              <svg id="dispatchSpinner" class="w-5 h-5 animate-spin hidden" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <svg id="dispatchIcon" class="w-5 h-5 group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-              </svg>
-              <span id="dispatchBtnText">Initiate Action Workflow</span>
+          <div style="margin-top: 10px;">
+            <button id="dispatchBtn" type="submit" class="btn btn-primary btn-block" style="padding: 14px; font-size: 14px;">
+              <span id="dispatchBtnText">&#128640; Initiate Action Workflow</span>
             </button>
           </div>
 
-        </form>
-      </section>
-
-      <!-- Right Column: Live Run Tracker & Result Status -->
-      <section class="lg:col-span-5 flex flex-col space-y-6">
-
-        <!-- Active Run Card -->
-        <div id="activeRunCard" class="bg-darkbg-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl flex-1 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
-              <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-slate-500" id="runStatusDot"></span>
-                Action Execution Status
-              </h3>
-              <span id="runTimer" class="font-mono text-xs text-slate-400">--:--</span>
-            </div>
-
-            <!-- Empty State / Standby -->
-            <div id="trackerEmptyState" class="py-12 text-center text-slate-400">
-              <div class="w-12 h-12 mx-auto rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-500 mb-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <p class="text-sm font-medium text-slate-300">No Action Running</p>
-              <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto">Fill in the switch details on the left and submit to dispatch the Ansible workflow to the runner.</p>
-            </div>
-
-            <!-- Active Status Details -->
-            <div id="trackerActiveState" class="hidden space-y-4">
-              <div class="p-4 rounded-xl bg-darkbg-900 border border-slate-700/60 space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-slate-400">Status</span>
-                  <span id="runStatusBadge" class="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Queued</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-slate-400">Configured Blocks</span>
-                  <span id="runBlocksBadge" class="text-xs font-mono text-slate-200">1 Block</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-slate-400">Target Devices</span>
-                  <span id="runTargetBadge" class="text-xs font-mono text-slate-200">1 Device</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-slate-400">Commands</span>
-                  <span id="runCommandBadge" class="text-xs font-mono text-orange-400 truncate max-w-[180px]">show version</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-slate-400">Run ID</span>
-                  <span id="runIdBadge" class="text-xs font-mono text-slate-400">#------</span>
-                </div>
-              </div>
-
-              <!-- Action Link Buttons -->
-              <div class="space-y-2 pt-2">
-                <a id="viewRunLink" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-4 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center justify-center gap-2 border border-slate-600/40 transition">
-                  <svg class="w-4 h-4 text-slate-300" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-                  View Workflow Run on GitHub Actions
-                  <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                </a>
-
-                <a id="viewSummaryLink" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-4 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-medium flex items-center justify-center gap-2 border border-orange-500/30 transition">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                  Open GitHub Step Summary & Logs
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-4 pt-4 border-t border-slate-700/60 text-[11px] text-slate-500 flex items-center justify-between">
-            <span>Summary Output Target:</span>
-            <code class="text-slate-400 bg-darkbg-900 px-1.5 py-0.5 rounded">$GITHUB_STEP_SUMMARY</code>
-          </div>
         </div>
 
-      </section>
+      </form>
 
     </div>
 
-    <!-- Recent Executions Section -->
-    <section class="bg-darkbg-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl">
-      <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-700/60">
-        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-          <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          Recent Workflow Runs
-        </h3>
-        <button id="refreshRunsBtn" class="text-xs text-slate-400 hover:text-white transition flex items-center gap-1">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          Refresh
-        </button>
+    <!-- Right Column: Status & Live Tracker -->
+    <div>
+
+      <!-- Status Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#9201; Execution Status</div>
+          <span id="runTimer" style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">--:--</span>
+        </div>
+
+        <div id="trackerEmptyState" style="text-align: center; padding: 30px 10px; color: var(--text-muted);">
+          <div style="font-size: 28px; margin-bottom: 8px;">&#9749;</div>
+          <div style="font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Ready to Execute</div>
+          <div style="font-size: 12px; max-width: 260px; margin: 0 auto;">
+            Configure your device blocks and click "Initiate Action Workflow" to run on the runner.
+          </div>
+        </div>
+
+        <div id="trackerActiveState" class="hidden">
+          <div class="status-row">
+            <span class="status-label">Status</span>
+            <span id="runStatusBadge" class="badge-tag">Queued</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Blocks</span>
+            <span id="runBlocksBadge" class="status-value">1 Block</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Devices</span>
+            <span id="runTargetBadge" class="status-value">1 Device</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Commands</span>
+            <span id="runCommandBadge" class="status-value">--</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Run ID</span>
+            <span id="runIdBadge" class="status-value">#detecting...</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+            <a id="viewRunLink" href="#" target="_blank" class="btn btn-secondary" style="font-size: 12px;">
+              &#128279; View Action Run on GitHub
+            </a>
+            <a id="viewSummaryLink" href="#" target="_blank" class="btn btn-primary" style="font-size: 12px;">
+              &#128196; Open Step Summary &amp; Logs
+            </a>
+          </div>
+        </div>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead>
-            <tr class="text-slate-400 border-b border-slate-700/60 uppercase font-semibold text-[10px]">
-              <th class="py-2.5 px-3">Run ID</th>
-              <th class="py-2.5 px-3">Status</th>
-              <th class="py-2.5 px-3">Triggered By</th>
-              <th class="py-2.5 px-3">Started</th>
-              <th class="py-2.5 px-3 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody id="recentRunsBody" class="divide-y divide-slate-800 text-slate-300 font-mono">
-            <tr>
-              <td colspan="5" class="py-6 text-center text-slate-500 font-sans">
-                Configure your GitHub credentials above to load recent runs.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Quick Tips Card -->
+      <div class="card" style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 6px;">&#128161; Corporate Environment Tips</div>
+        <ul style="padding-left: 18px;">
+          <li>If using GitHub Enterprise Server, set Server URL to: <code>https://&lt;ghe-host&gt;/api/v3</code></li>
+          <li>Ensure your runner is started in terminal: <code>./run.sh</code></li>
+          <li>Each block executes its selected commands independently.</li>
+          <li>Outputs are formatted directly in the GitHub Step Summary.</li>
+        </ul>
       </div>
-    </section>
 
-  </main>
+    </div>
 
-  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-    Ansible + GitHub Actions AOS-CX Management Portal &bull; Step Summary Enabled
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastBox" class="toast-box"></div>
+
+  <footer>
+    Aruba AOS-CX Ansible Automation &bull; 100% Offline Standalone Interface
   </footer>
 
   <script src="app.js"></script>
