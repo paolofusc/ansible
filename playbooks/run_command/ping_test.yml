@@ -1,0 +1,14 @@
+- name: Connectivity Ping Test
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Ping target switch / host
+      ansible.builtin.ping:
+      register: ping_result
+
+    - name: Save ping result to local file
+      ansible.builtin.copy:
+        content: "Ping to {{ inventory_hostname }} succeeded: {{ ping_result.ping }}"
+        dest: "{{ inventory_hostname }}_output.txt"
+      delegate_to: localhost

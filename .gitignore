@@ -1,0 +1,21 @@
+# Reference clone from work
+ansible-paolo/
+
+# Ansible execution artifacts
+*_output.txt
+*.retry
+*.log
+.cache/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

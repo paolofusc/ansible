@@ -1,0 +1,90 @@
+name: Run AOS-CX Command
+
+on:
+  workflow_dispatch:
+    inputs:
+      hostname:
+        description: 'Hostname or IP of the switch'
+        required: true
+        type: string
+      command:
+        description: 'Command to run'
+        required: true
+        type: string
+      runner_type:
+        description: 'Runner environment'
+        required: false
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - ubuntu-latest
+
+jobs:
+  execute-playbook:
+    runs-on: ${{ inputs.runner_type || 'self-hosted' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ansible (if ubuntu-latest)
+        if: inputs.runner_type == 'ubuntu-latest'
+        run: |
+          sudo apt-get update && sudo apt-get install -y python3-pip
+          pip install ansible-core paramiko
+          ansible-galaxy collection install arubanetworks.aoscx
+
+      - name: Check Ansible Version
+        run: ansible-playbook --version
+
+      - name: Run Ansible Playbook
+        id: run_playbook
+        env:
+          SSH_USER: ${{ secrets.SSH_ANSIBLE_USER }}
+          SSH_PASS: ${{ secrets.SSH_ANSIBLE_PASSWORD }}
+          ANSIBLE_CONFIG: ${{ github.workspace }}/src/ansible.cfg
+        run: >
+          ansible-playbook playbooks/run_command/aoscx_run_command.yml 
+          -i "${{ inputs.hostname }}," 
+          -e "input_command='${{ inputs.command }}'" 
+          -e "ansible_user=$SSH_USER" 
+          -e "ansible_password=$SSH_PASS"
+
+      - name: Publish Results to GitHub Step Summary
+        if: always()
+        run: |
+          echo "## 🌐 Aruba AOS-CX Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Switch** | \`${{ inputs.hostname }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Command** | \`${{ inputs.command }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Runner** | \`${{ inputs.runner_type }}\` |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.run_playbook.outcome }}" = "success" ]; then
+            echo "| **Execution Status** | 🟢 **Success** |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| **Execution Status** | 🔴 **Failed** |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          output_found=false
+          for file in *_output.txt; do
+            if [ -f "$file" ]; then
+              output_found=true
+              switch_name="${file%_output.txt}"
+              echo "### 📋 Output for \`$switch_name\`" >> $GITHUB_STEP_SUMMARY
+              echo "<details open><summary>Click to collapse output</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+              cat "$file" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          if [ "$output_found" = false ]; then
+            echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
+            echo "> No output file was captured. Please review the step logs above for execution details or SSH connection errors." >> $GITHUB_STEP_SUMMARY
+          fi

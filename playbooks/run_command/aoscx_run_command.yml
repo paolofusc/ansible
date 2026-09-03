@@ -1,0 +1,29 @@
+- name: Run passed in show command
+  hosts: all 
+  gather_facts: false
+
+  vars: 
+    ansible_host: '{{ inventory_hostname }}'
+    ansible_connection: arubanetworks.aoscx.aoscx 
+    ansible_network_os: arubanetworks.aoscx.aoscx 
+    ansible_aoscx_rest_version: 10.09
+
+  tasks:
+
+    - name: Run command
+      arubanetworks.aoscx.aoscx_command:
+        commands: "{{ input_command }}"
+      register: command_output
+      vars:
+        ansible_connection: network_cli
+        ansible_network_cli_ssh_type: paramiko
+
+    - name: Print output
+      ansible.builtin.debug:
+        msg: "{{ command_output.stdout[0] }}"
+    
+    - name: Save output to local file
+      ansible.builtin.copy:
+        content: "{{ command_output.stdout[0] }}"
+        dest: "{{ inventory_hostname }}_output.txt"
+      delegate_to: localhost
