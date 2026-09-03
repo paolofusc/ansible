@@ -106,6 +106,7 @@ def main():
                 "ansible_connection": "arubanetworks.aoscx.aoscx",
                 "ansible_network_os": "arubanetworks.aoscx.aoscx",
                 "ansible_aoscx_rest_version": 10.09,
+                "block_id": group_name,
                 "block_label": block_label,
                 "commands_to_run": commands
             },
@@ -134,7 +135,7 @@ def main():
                             "{{ (command_output.stdout[loop.index0] if (command_output.stdout is defined and command_output.stdout | length > loop.index0) else '') | trim }}\n\n"
                             "{% endfor %}"
                         ),
-                        "dest": "{{ inventory_hostname }}_output.txt"
+                        "dest": "{{ block_id }}_{{ inventory_hostname }}_output.txt"
                     },
                     "delegate_to": "localhost",
                     "when": "command_output.stdout is defined and command_output.stdout | length > 0"
@@ -143,7 +144,7 @@ def main():
                     "name": "Save failure details to local file",
                     "ansible.builtin.copy": {
                         "content": "Error connecting to {{ inventory_hostname }}: {{ command_output.msg | default('Unknown error or host unreachable') }}",
-                        "dest": "{{ inventory_hostname }}_error.txt"
+                        "dest": "{{ block_id }}_{{ inventory_hostname }}_error.txt"
                     },
                     "delegate_to": "localhost",
                     "when": "(command_output.failed is defined and command_output.failed) or (command_output.unreachable is defined and command_output.unreachable)"

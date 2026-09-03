@@ -41,6 +41,10 @@ jobs:
       - name: Check Ansible Version
         run: ansible-playbook --version
 
+      - name: Clean Previous Run Outputs
+        run: |
+          rm -f *_output.txt *_error.txt dynamic_inventory.ini dynamic_playbook.yml summary_blocks.json
+
       - name: Prepare Multi-Block Execution
         env:
           INPUT_BLOCKS_JSON: ${{ inputs.blocks_json }}

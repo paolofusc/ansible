@@ -4,6 +4,13 @@ import os
 import glob
 import sys
 
+# Ensure stdout supports UTF-8 on Windows/Linux
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 def main():
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY')
     runner_type = os.environ.get('RUNNER_TYPE', 'self-hosted')
@@ -45,11 +52,64 @@ def main():
             summary.append(f"| **{blk.get('name', 'Block')}** | {dev_badges} | {cmd_lines} |")
         summary.append("")
 
-    output_files = sorted(glob.glob("*_output.txt"))
-    if output_files:
-        summary.append("### 📋 Captured Device Outputs\n")
-        for file in output_files:
-            dev_name = file[:-11]  # strip '_output.txt'
+    processed_files = set()
+
+    # 1. Output organized by Block
+    if blocks:
+        summary.append("### 📋 Captured Outputs by Block\n")
+        for blk in blocks:
+            block_id = blk.get('id', '')
+            block_name = blk.get('name', 'Block')
+            devices = blk.get('devices', [])
+
+            summary.append(f"#### 🏷️ {block_name}\n")
+
+            has_block_output = False
+            for dev in devices:
+                out_path = f"{block_id}_{dev}_output.txt"
+                err_path = f"{block_id}_{dev}_error.txt"
+
+                if os.path.exists(out_path):
+                    has_block_output = True
+                    processed_files.add(out_path)
+                    try:
+                        with open(out_path, 'r', errors='ignore') as of:
+                            content = of.read()
+                    except Exception:
+                        content = "Could not read output file."
+
+                    summary.append(f"<details open><summary><b>Switch <code>{dev}</code> Output</b></summary>\n")
+                    summary.append("```text")
+                    summary.append(content)
+                    summary.append("```\n</details>\n")
+
+                if os.path.exists(err_path):
+                    has_block_output = True
+                    processed_files.add(err_path)
+                    try:
+                        with open(err_path, 'r', errors='ignore') as ef:
+                            err_msg = ef.read().strip()
+                    except Exception:
+                        err_msg = "Unknown error."
+
+                    summary.append("> [!WARNING]")
+                    summary.append(f"> **Error connecting to switch <code>{dev}</code>**")
+                    summary.append("> ```text")
+                    summary.append(f"> {err_msg}")
+                    summary.append("> ```\n")
+
+            if not has_block_output:
+                summary.append("> [!WARNING]\n> No outputs captured for devices in this block.\n")
+
+    # 2. Check for any remaining unprocessed output/error files (e.g. legacy single runs)
+    other_outputs = [f for f in sorted(glob.glob("*_output.txt")) if f not in processed_files]
+    if other_outputs:
+        if not blocks:
+            summary.append("### 📋 Captured Device Outputs\n")
+        else:
+            summary.append("### 📋 Additional Device Outputs\n")
+        for file in other_outputs:
+            dev_name = file[:-11]
             try:
                 with open(file, 'r', errors='ignore') as of:
                     content = of.read()
@@ -60,27 +120,6 @@ def main():
             summary.append("```text")
             summary.append(content)
             summary.append("```\n</details>\n")
-
-    error_files = sorted(glob.glob("*_error.txt"))
-    if error_files:
-        summary.append("### ⚠️ Connection / Execution Errors\n")
-        for errfile in error_files:
-            dev_name = errfile[:-10]  # strip '_error.txt'
-            try:
-                with open(errfile, 'r', errors='ignore') as ef:
-                    err_msg = ef.read().strip()
-            except Exception:
-                err_msg = "Unknown error."
-
-            summary.append("> [!WARNING]")
-            summary.append(f"> **Error connecting to switch <code>{dev_name}</code>**")
-            summary.append("> ```text")
-            summary.append(f"> {err_msg}")
-            summary.append("> ```\n")
-
-    if not output_files and not error_files:
-        summary.append("> [!WARNING]")
-        summary.append("> No output files were captured from switches. Please review step logs for details.\n")
 
     summary_text = '\n'.join(summary) + '\n'
 
