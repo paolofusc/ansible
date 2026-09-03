@@ -155,16 +155,17 @@
           <div>
             <div class="flex items-center justify-between mb-2">
               <label for="switchHostname" class="block text-sm font-semibold text-slate-200">
-                Switch Hostname / IP Address
+                Switch Hostname(s) / IP Address(es)
               </label>
-              <span class="text-xs text-slate-400">Target host</span>
-            </div>
-            <div class="relative">
-              <input type="text" id="switchHostname" required placeholder="e.g. 10.100.20.5 or switch-core-01.lab" class="w-full bg-darkbg-900 border border-slate-700 rounded-xl px-4 py-3 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition">
-              <div id="ipIndicator" class="absolute right-3 top-1/2 -translate-y-1/2 hidden">
-                <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">IPv4</span>
+              <div class="flex items-center gap-2">
+                <span id="deviceCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-mono">0 devices</span>
+                <span id="ipIndicator" class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono hidden">Valid IPs</span>
               </div>
             </div>
+            <div class="relative">
+              <textarea id="switchHostname" rows="2" required placeholder="e.g. 192.168.72.128, 192.168.72.129&#10;or separate with newlines" class="w-full bg-darkbg-900 border border-slate-700 rounded-xl px-4 py-3 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition resize-y"></textarea>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Supports single or multiple switches separated by commas, spaces, or newlines.</p>
           </div>
 
           <!-- Command Selector -->

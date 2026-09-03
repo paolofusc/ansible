@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       hostname:
-        description: 'Hostname or IP of the switch'
+        description: 'Hostname(s) or IP(s) of the switch(es) (comma, space, or newline separated)'
         required: true
         type: string
       command:
@@ -43,12 +43,17 @@ jobs:
           SSH_USER: ${{ secrets.SSH_ANSIBLE_USER }}
           SSH_PASS: ${{ secrets.SSH_ANSIBLE_PASSWORD }}
           ANSIBLE_CONFIG: ${{ github.workspace }}/src/ansible.cfg
-        run: >
-          ansible-playbook playbooks/run_command/aoscx_run_command.yml 
-          -i "${{ inputs.hostname }}," 
-          -e "input_command='${{ inputs.command }}'" 
-          -e "ansible_user=$SSH_USER" 
-          -e "ansible_password=$SSH_PASS"
+        run: |
+          # Normalize hosts input into a comma-separated list
+          HOST_LIST=$(echo "${{ inputs.hostname }}" | tr '\r\n' ',' | tr ' ' ',' | sed 's/,,*/,/g' | sed 's/^,//;s/,$//')
+          echo "Target hosts: $HOST_LIST"
+          echo "HOST_LIST=$HOST_LIST" >> $GITHUB_ENV
+          
+          ansible-playbook playbooks/run_command/aoscx_run_command.yml \
+            -i "${HOST_LIST}," \
+            -e "input_command='${{ inputs.command }}'" \
+            -e "ansible_user=$SSH_USER" \
+            -e "ansible_password=$SSH_PASS"
 
       - name: Publish Results to GitHub Step Summary
         if: always()
@@ -57,13 +62,13 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Target Switch** | \`${{ inputs.hostname }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Switches** | \`${{ env.HOST_LIST || inputs.hostname }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Command** | \`${{ inputs.command }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Runner** | \`${{ inputs.runner_type }}\` |" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.run_playbook.outcome }}" = "success" ]; then
-            echo "| **Execution Status** | 🟢 **Success** |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Overall Status** | 🟢 **Success** |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| **Execution Status** | 🔴 **Failed** |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Overall Status** | ⚠️ **Completed with warnings / errors** |" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
 
@@ -84,7 +89,23 @@ jobs:
             fi
           done
 
-          if [ "$output_found" = false ]; then
+          error_found=false
+          for errfile in *_error.txt; do
+            if [ -f "$errfile" ]; then
+              error_found=true
+              switch_name="${errfile%_error.txt}"
+              echo "### ⚠️ Execution Error for \`$switch_name\`" >> $GITHUB_STEP_SUMMARY
+              echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
+              echo "> " >> $GITHUB_STEP_SUMMARY
+              echo "> \`\`\`text" >> $GITHUB_STEP_SUMMARY
+              cat "$errfile" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "> \`\`\`" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          if [ "$output_found" = false ] && [ "$error_found" = false ]; then
             echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
-            echo "> No output file was captured. Please review the step logs above for execution details or SSH connection errors." >> $GITHUB_STEP_SUMMARY
+            echo "> No switch output files were captured. Please review the step logs above for execution details or SSH connection errors." >> $GITHUB_STEP_SUMMARY
           fi

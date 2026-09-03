@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const actionForm = document.getElementById('actionForm');
   const switchHostname = document.getElementById('switchHostname');
   const ipIndicator = document.getElementById('ipIndicator');
+  const deviceCountBadge = document.getElementById('deviceCountBadge');
   const switchCommand = document.getElementById('switchCommand');
   const runnerType = document.getElementById('runnerType');
   const workflowFile = document.getElementById('workflowFile');
@@ -145,11 +146,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 4. IP Validator Indicator
+  function parseDevices(raw) {
+    if (!raw) return [];
+    return raw
+      .replace(/[\r\n]+/g, ',')
+      .replace(/\s+/g, ',')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
+  // 4. IP Validator & Multi-device Indicator
   switchHostname.addEventListener('input', () => {
-    const val = switchHostname.value.trim();
+    const devices = parseDevices(switchHostname.value);
+    const count = devices.length;
+
+    if (deviceCountBadge) {
+      deviceCountBadge.textContent = count === 1 ? '1 device' : `${count} devices`;
+      if (count > 0) {
+        deviceCountBadge.classList.add('text-orange-400', 'border-orange-500/30', 'bg-orange-500/10');
+        deviceCountBadge.classList.remove('text-slate-400', 'border-slate-700', 'bg-slate-800');
+      } else {
+        deviceCountBadge.classList.remove('text-orange-400', 'border-orange-500/30', 'bg-orange-500/10');
+        deviceCountBadge.classList.add('text-slate-400', 'border-slate-700', 'bg-slate-800');
+      }
+    }
+
     const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    if (ipv4Regex.test(val)) {
+    const allIps = count > 0 && devices.every(d => ipv4Regex.test(d));
+
+    if (allIps) {
       ipIndicator.classList.remove('hidden');
     } else {
       ipIndicator.classList.add('hidden');
@@ -177,7 +203,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const hostname = switchHostname.value.trim();
+    const devices = parseDevices(switchHostname.value);
+    if (devices.length === 0) {
+      showToast('Please specify at least one target switch IP or hostname.', 'error');
+      switchHostname.focus();
+      return;
+    }
+
+    const cleanHostList = devices.join(', ');
     const command = switchCommand.value.trim();
     const runner = runnerType.value;
     const workflow = workflowFile.value.trim();
@@ -198,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           ref: branch,
           inputs: {
-            hostname: hostname,
+            hostname: cleanHostList,
             command: command,
             runner_type: runner
           }
@@ -210,8 +243,8 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(errorData.message || `GitHub API error: ${response.status} ${response.statusText}`);
       }
 
-      showToast('Action dispatched successfully to runner!', 'success');
-      startTrackingRun(owner, repo, token, hostname, command);
+      showToast(`Action dispatched for ${devices.length} device(s)!`, 'success');
+      startTrackingRun(owner, repo, token, cleanHostList, command);
 
     } catch (err) {
       console.error(err);

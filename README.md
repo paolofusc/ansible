@@ -116,11 +116,11 @@ ROM: Version FL.01.08
 
 ### Option A: From the Web Interface (Recommended)
 1. Open your GitHub Pages URL (or open `docs/index.html` locally).
-2. Enter the switch IP (e.g. `10.100.20.5`).
+2. Enter one or multiple switch IPs/hostnames (e.g. `192.168.72.128, 192.168.72.129` or separate with newlines).
 3. Click a command preset button (e.g. `show version`, `show running-config`, `show vlan`, etc.) or type a custom command.
 4. Choose the runner (`self-hosted` for internal network switches or `ubuntu-latest`).
 5. Click **Initiate Action Workflow**.
-6. Watch the live status tracker poll the run, then click **Open GitHub Step Summary & Logs** to view output!
+6. Watch the live status tracker poll the run, then click **Open GitHub Step Summary & Logs** to view output for each switch!
 
 ### Option B: From the GitHub Actions UI
 1. Go to the **Actions** tab in your repository.
