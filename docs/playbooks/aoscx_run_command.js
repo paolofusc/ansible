@@ -7,7 +7,6 @@ window.PLAYBOOK_CATALOG['aoscx_run_command'] = {
   description: 'Execute CLI show and diagnostic commands across up to 10 independent device blocks.',
   category: 'Diagnostics & Operations',
   badge: 'Multi-Block',
-  icon: '⚡',
   workflowFile: 'aoscx_run_command.yml',
   type: 'multi_block', // Tells the engine to render the multi-block device manager
 

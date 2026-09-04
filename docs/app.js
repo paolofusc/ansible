@@ -222,7 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
       card.innerHTML = `
         <div>
           <div class="playbook-card-top">
-            <span class="playbook-card-icon">${playbook.icon || '📦'}</span>
             <span class="badge-tag">${escapeHtml(playbook.badge || playbook.category || 'Playbook')}</span>
           </div>
           <div class="playbook-card-title">${escapeHtml(playbook.title)}</div>
@@ -230,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="playbook-card-footer">
           <span>Workflow: <code>${escapeHtml(playbook.workflowFile)}</code></span>
-          <span>${isSelected ? '● Active' : 'Select →'}</span>
+          <span>${isSelected ? 'Active' : 'Select'}</span>
         </div>
       `;
 
@@ -250,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const playbook = getActivePlaybook();
     if (!playbook) return;
 
-    selectedPlaybookIcon.textContent = playbook.icon || '📦';
+    if (selectedPlaybookIcon) selectedPlaybookIcon.textContent = '';
     selectedPlaybookTitle.textContent = playbook.title;
     selectedPlaybookBadge.textContent = playbook.badge || playbook.category || 'Playbook';
     selectedPlaybookDesc.textContent = playbook.description;
@@ -340,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   data-id="${block.id}" 
                   data-cmd="${escapeHtml(cmd)}" 
                   class="preset-chip ${isSelected ? 'active' : ''}">
-                  ${isSelected ? '&#10003; ' : ''}${cmd}
+                  ${escapeHtml(cmd)}
                 </button>
               `;
             }).join('')}
@@ -516,9 +515,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!playbook) return;
 
     if (playbook.type === 'multi_block') {
-      dispatchBtnText.textContent = `🚀 Initiate Action Workflow (${multiBlocks.length} ${multiBlocks.length === 1 ? 'Block' : 'Blocks'})`;
+      dispatchBtnText.textContent = `Initiate Action Workflow (${multiBlocks.length} ${multiBlocks.length === 1 ? 'Block' : 'Blocks'})`;
     } else {
-      dispatchBtnText.textContent = `🚀 Initiate Action Workflow (${playbook.title})`;
+      dispatchBtnText.textContent = `Initiate Action Workflow (${playbook.title})`;
     }
   }
 
@@ -729,12 +728,12 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(timerInterval);
 
             if (latestRun.conclusion === 'success') {
-              runStatusBadge.textContent = 'Success ✅';
-              runStatusBadge.style.color = '#10b981';
-              showToast('Ansible execution completed successfully!', 'success');
+              runStatusBadge.textContent = 'Success';
+              runStatusBadge.style.color = '#059669';
+              showToast('Ansible execution completed successfully.', 'success');
             } else {
-              runStatusBadge.textContent = `Completed (${latestRun.conclusion}) ⚠️`;
-              runStatusBadge.style.color = '#f59e0b';
+              runStatusBadge.textContent = `Completed (${latestRun.conclusion})`;
+              runStatusBadge.style.color = '#d97706';
               showToast('Execution finished. Check summary for details.', 'info');
             }
           }

@@ -7,7 +7,6 @@ window.PLAYBOOK_CATALOG['aoscx_firmware_upgrade'] = {
   description: 'Pre-check switch baseline, transfer firmware image, stage boot partition, and control reboot.',
   category: 'Maintenance & Lifecycle',
   badge: 'Lifecycle',
-  icon: '🚀',
   workflowFile: 'aoscx_firmware_upgrade.yml',
   type: 'fields',
 

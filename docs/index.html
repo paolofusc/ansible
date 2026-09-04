@@ -3,26 +3,112 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aruba AOS-CX Automation Portal</title>
+  <title>Ansible Portal</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+/* 100% Offline & Standalone CSS - Clean Enterprise Light Theme */
+:root {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --bg-hover: #f1f5f9;
+  --border-color: #e2e8f0;
+  --border-focus: #ea580c;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+  --primary: #ea580c;
+  --primary-hover: #c2410c;
+  --primary-light: #fff7ed;
+  --success: #059669;
+  --success-bg: #ecfdf5;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background-color: var(--bg-main); color: var(--text-main); font-family: var(--font-family); font-size: 14px; line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+.app-header { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); }
+.brand-container { display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 34px; height: 34px; background-color: var(--primary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 17px; }
+.brand-title { font-size: 17px; font-weight: 700; color: var(--text-main); letter-spacing: -0.2px; }
+.brand-subtitle { font-size: 12px; color: var(--text-muted); }
+.badge-tag { background-color: var(--primary-light); color: var(--primary); border: 1px solid #fed7aa; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); }
+.app-container { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 24px 20px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 900px) { .app-container { grid-template-columns: 7fr 5fr; } }
+.card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+.card-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; }
+.card-title { font-size: 15px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+.playbook-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.playbook-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 16px; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; justify-content: space-between; user-select: none; }
+.playbook-card:hover { border-color: #cbd5e1; background-color: var(--bg-hover); }
+.playbook-card.selected { border-color: var(--primary); background-color: var(--primary-light); box-shadow: 0 0 0 1px var(--primary); }
+.playbook-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.playbook-card-title { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; }
+.playbook-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.45; margin-bottom: 10px; }
+.playbook-card-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-dim); border-top: 1px solid var(--border-color); padding-top: 8px; }
+.form-group { margin-bottom: 14px; }
+label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+input[type="text"], input[type="password"], select, textarea { width: 100%; background-color: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); font-family: var(--font-mono); font-size: 13px; border-radius: var(--radius-md); padding: 9px 12px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+input:focus, select:focus, textarea:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.12); }
+textarea { resize: vertical; min-height: 60px; }
+.helper-text { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.block-card { background-color: #fafafa; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 14px; }
+.block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+.block-title-input { background: transparent !important; border: 1px solid transparent !important; font-weight: 700 !important; color: var(--text-main) !important; font-size: 14px !important; padding: 2px 6px !important; width: auto !important; max-width: 200px; }
+.block-title-input:hover, .block-title-input:focus { border-color: var(--border-color) !important; background-color: white !important; }
+.preset-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; margin-bottom: 10px; }
+.preset-chip { background-color: white; border: 1px solid var(--border-color); color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; padding: 5px 10px; border-radius: var(--radius-sm); cursor: pointer; user-select: none; transition: all 0.15s; }
+.preset-chip:hover { border-color: #94a3b8; color: var(--text-main); }
+.preset-chip.active { background-color: var(--primary-light); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; font-size: 13px; font-weight: 600; border-radius: var(--radius-md); border: 1px solid transparent; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+.btn-primary { background-color: var(--primary); color: white; }
+.btn-primary:hover { background-color: var(--primary-hover); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-secondary { background-color: white; border-color: var(--border-color); color: var(--text-main); }
+.btn-secondary:hover { background-color: var(--bg-hover); }
+.btn-danger { background-color: transparent; color: var(--danger); border: 1px solid #fca5a5; padding: 4px 8px; font-size: 11px; }
+.btn-danger:hover { background-color: var(--danger-bg); }
+.btn-block { width: 100%; }
+.stats-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background-color: #f1f5f9; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 12px; margin-bottom: 16px; }
+.status-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 8px; font-family: var(--font-mono); font-size: 12px; }
+.status-label { color: var(--text-muted); }
+.status-value { color: var(--text-main); font-weight: 600; }
+.toast-box { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+.toast-item { padding: 10px 16px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 500; box-shadow: var(--shadow-md); background-color: white; border: 1px solid var(--border-color); color: var(--text-main); }
+.toast-success { border-color: var(--success); background-color: var(--success-bg); color: #065f46; }
+.toast-error { border-color: var(--danger); background-color: var(--danger-bg); color: #991b1b; }
+.hidden { display: none !important; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+footer { border-top: 1px solid var(--border-color); background-color: white; padding: 16px; text-align: center; font-size: 12px; color: var(--text-dim); }
+  </style>
 </head>
 <body>
 
   <!-- Top Header -->
   <header class="app-header">
     <div class="brand-container">
-      <div class="brand-icon">&#9889;</div>
+      <div class="brand-icon">A</div>
       <div>
-        <div class="brand-title">Aruba AOS-CX Ansible Portal <span class="badge-tag">Offline-Ready</span></div>
+        <div class="brand-title">Ansible Portal</div>
         <div class="brand-subtitle">Automated Action Runner &amp; Step Summary Interface</div>
       </div>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
       <button id="toggleSettingsBtn" type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
-        &#9881; <span id="settingsStatusText">Configure GitHub</span>
+        <span id="settingsStatusText">Configure GitHub</span>
       </button>
-      <a id="repoLink" href="#" target="_blank" class="btn btn-secondary" style="padding: 6px 10px;" title="Open Repository">
-        &#128279;
+      <a id="repoLink" href="#" target="_blank" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" title="Open Repository">
+        Repository
       </a>
     </div>
   </header>
@@ -36,7 +122,7 @@
       <!-- Connection / Settings Card -->
       <section id="settingsPanel" class="card">
         <div class="card-header">
-          <div class="card-title">&#128273; GitHub Connection Settings</div>
+          <div class="card-title">GitHub Connection Settings</div>
           <button id="closeSettingsBtn" type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;">Hide</button>
         </div>
 
@@ -63,11 +149,11 @@
         <div class="form-group" style="margin-top: 10px;">
           <label for="githubToken">Personal Access Token (PAT)</label>
           <div style="display: flex; gap: 8px;">
-            <input type="password" id="githubToken" placeholder="Paste GitHub Token here (requires workflow or actions:write scope)" style="flex: 1;">
+            <input type="password" id="githubToken" placeholder="Paste GitHub Token here (requires repo and workflow scopes)" style="flex: 1;">
             <button id="toggleTokenVisibility" type="button" class="btn btn-secondary" style="padding: 8px 12px;">Show</button>
             <button id="clearTokenBtn" type="button" class="btn btn-danger" style="padding: 8px 12px;">Clear</button>
           </div>
-          <div class="helper-text">&#128274; Token is saved only in your local browser storage.</div>
+          <div class="helper-text">Token is saved securely in your local browser storage.</div>
         </div>
 
         <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
@@ -80,7 +166,7 @@
       <!-- Step 1: Select Automation Playbook -->
       <div class="card">
         <div class="card-header">
-          <div class="card-title">&#128218; Step 1: Select Automation Playbook</div>
+          <div class="card-title">Step 1: Select Automation Playbook</div>
           <span id="playbookCountBadge" class="badge-tag">3 Available</span>
         </div>
         <div id="playbookGrid" class="playbook-grid">
@@ -94,7 +180,6 @@
         <div class="card" id="playbookFormCard">
           <div class="card-header">
             <div class="card-title">
-              <span id="selectedPlaybookIcon">&#9889;</span>
               <span id="selectedPlaybookTitle">Aruba AOS-CX Run Commands</span>
               <span id="selectedPlaybookBadge" class="badge-tag">Multi-Block</span>
             </div>
@@ -117,8 +202,8 @@
           <!-- Totals Bar (shown for multi-block) -->
           <div id="statsBar" class="stats-bar">
             <div>
-              Total Blocks: <strong id="totalBlocksSummary" style="color: var(--primary-hover);">1</strong> &bull;
-              Total Devices: <strong id="totalDevicesSummary" style="color: var(--primary-hover);">0</strong>
+              Total Blocks: <strong id="totalBlocksSummary" style="color: var(--primary);">1</strong> &bull;
+              Total Devices: <strong id="totalDevicesSummary" style="color: var(--primary);">0</strong>
             </div>
             <div style="color: var(--text-dim); font-size: 11px;">Up to 10 blocks</div>
           </div>
@@ -141,7 +226,7 @@
           <!-- Submit Button -->
           <div style="margin-top: 10px;">
             <button id="dispatchBtn" type="submit" class="btn btn-primary btn-block" style="padding: 14px; font-size: 14px;">
-              <span id="dispatchBtnText">&#128640; Initiate Action Workflow</span>
+              <span id="dispatchBtnText">Initiate Action Workflow</span>
             </button>
           </div>
 
@@ -157,15 +242,14 @@
       <!-- Status Card -->
       <div class="card">
         <div class="card-header">
-          <div class="card-title">&#9201; Execution Status</div>
+          <div class="card-title">Execution Status</div>
           <span id="runTimer" style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">--:--</span>
         </div>
 
         <div id="trackerEmptyState" style="text-align: center; padding: 30px 10px; color: var(--text-muted);">
-          <div style="font-size: 28px; margin-bottom: 8px;">&#9749;</div>
           <div style="font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Ready to Execute</div>
-          <div style="font-size: 12px; max-width: 260px; margin: 0 auto;">
-            Configure your device blocks and click "Initiate Action Workflow" to run on the runner.
+          <div style="font-size: 12px; max-width: 280px; margin: 0 auto; line-height: 1.5;">
+            Configure your inputs and click "Initiate Action Workflow" to dispatch to the runner.
           </div>
         </div>
 
@@ -183,7 +267,7 @@
             <span id="runTargetBadge" class="status-value">1 Device</span>
           </div>
           <div class="status-row">
-            <span class="status-label">Commands</span>
+            <span class="status-label">Playbook</span>
             <span id="runCommandBadge" class="status-value">--</span>
           </div>
           <div class="status-row">
@@ -193,22 +277,22 @@
 
           <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
             <a id="viewRunLink" href="#" target="_blank" class="btn btn-secondary" style="font-size: 12px;">
-              &#128279; View Action Run on GitHub
+              View Action Run on GitHub
             </a>
             <a id="viewSummaryLink" href="#" target="_blank" class="btn btn-primary" style="font-size: 12px;">
-              &#128196; Open Step Summary &amp; Logs
+              Open Step Summary &amp; Logs
             </a>
           </div>
         </div>
       </div>
 
-      <!-- Quick Tips Card -->
+      <!-- Quick Notes Card -->
       <div class="card" style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
-        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 6px;">&#128161; Corporate Environment Tips</div>
+        <div style="font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Environment Notes</div>
         <ul style="padding-left: 18px;">
-          <li>If using GitHub Enterprise Server, set Server URL to: <code>https://&lt;ghe-host&gt;/api/v3</code></li>
-          <li>Ensure your runner is started in terminal: <code>./run.sh</code></li>
-          <li>Each block executes its selected commands independently.</li>
+          <li>For GitHub Enterprise Server, set Server URL to: <code>https://&lt;ghe-host&gt;/api/v3</code></li>
+          <li>Ensure runner service is running on the host machine.</li>
+          <li>Each playbook executes dedicated workflows with custom validation.</li>
           <li>Outputs are formatted directly in the GitHub Step Summary.</li>
         </ul>
       </div>
@@ -221,7 +305,7 @@
   <div id="toastBox" class="toast-box"></div>
 
   <footer>
-    Aruba AOS-CX Ansible Automation &bull; 100% Offline Standalone Interface
+    Ansible Portal &bull; Automated Network Execution &bull; Offline Standalone
   </footer>
 
   <!-- Modular Playbook Definitions -->

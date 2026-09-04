@@ -7,7 +7,6 @@ window.PLAYBOOK_CATALOG['ping_test'] = {
   description: 'Execute ICMP ping tests from the runner to verify network connectivity and packet round-trip time.',
   category: 'Connectivity',
   badge: 'ICMP',
-  icon: '📡',
   workflowFile: 'ping_test.yml',
   type: 'fields',
 

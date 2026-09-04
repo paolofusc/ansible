@@ -1,27 +1,30 @@
-/* 100% Offline & Standalone CSS - Zero External Dependencies */
+/* 100% Offline & Standalone CSS - Clean Enterprise Light Theme */
 :root {
-  --bg-main: #0b0f19;
-  --bg-card: #131b2e;
-  --bg-input: #080c14;
-  --bg-hover: #1e293b;
-  --border-color: #27354f;
-  --border-focus: #f97316;
-  --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --bg-hover: #f1f5f9;
+  --border-color: #e2e8f0;
+  --border-focus: #ea580c;
+  --text-main: #0f172a;
+  --text-muted: #475569;
   --text-dim: #64748b;
   --primary: #ea580c;
-  --primary-hover: #f97316;
-  --primary-light: rgba(249, 115, 22, 0.15);
-  --success: #10b981;
-  --success-bg: rgba(16, 185, 129, 0.15);
-  --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.15);
-  --warning: #f59e0b;
+  --primary-hover: #c2410c;
+  --primary-light: #fff7ed;
+  --success: #059669;
+  --success-bg: #ecfdf5;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
 }
 
 * {
@@ -45,10 +48,11 @@ body {
 .app-header {
   background-color: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
-  padding: 12px 24px;
+  padding: 14px 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-shadow: var(--shadow-sm);
 }
 
 .brand-container {
@@ -58,22 +62,24 @@ body {
 }
 
 .brand-icon {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--primary), #fb923c);
+  width: 34px;
+  height: 34px;
+  background-color: var(--primary);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
+  font-weight: 800;
   color: white;
-  font-size: 18px;
+  font-size: 17px;
+  letter-spacing: -0.5px;
 }
 
 .brand-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
-  color: white;
+  color: var(--text-main);
+  letter-spacing: -0.2px;
 }
 
 .brand-subtitle {
@@ -82,9 +88,9 @@ body {
 }
 
 .badge-tag {
-  background: var(--primary-light);
-  color: var(--primary-hover);
-  border: 1px solid rgba(249, 115, 22, 0.3);
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid #fed7aa;
   padding: 2px 8px;
   border-radius: 9999px;
   font-size: 11px;
@@ -98,7 +104,7 @@ body {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px 20px;
   display: grid;
   grid-template-columns: 1fr;
   gap: 20px;
@@ -117,6 +123,7 @@ body {
   border-radius: var(--radius-lg);
   padding: 20px;
   margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .card-header {
@@ -140,16 +147,16 @@ body {
 /* Playbook Selector Grid */
 .playbook-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .playbook-card {
-  background-color: var(--bg-input);
+  background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: 14px 16px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -159,7 +166,7 @@ body {
 }
 
 .playbook-card:hover {
-  border-color: var(--text-dim);
+  border-color: #cbd5e1;
   background-color: var(--bg-hover);
 }
 
@@ -176,32 +183,28 @@ body {
   margin-bottom: 8px;
 }
 
-.playbook-card-icon {
-  font-size: 20px;
-}
-
 .playbook-card-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-main);
   margin-bottom: 4px;
 }
 
 .playbook-card-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
-  line-height: 1.4;
-  margin-bottom: 8px;
+  line-height: 1.45;
+  margin-bottom: 10px;
 }
 
 .playbook-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 6px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 8px;
 }
 
 /* Form Controls */
@@ -232,18 +235,19 @@ textarea {
   border-radius: var(--radius-md);
   padding: 9px 12px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.12);
 }
 
 textarea {
   resize: vertical;
-  min-height: 56px;
+  min-height: 60px;
 }
 
 .helper-text {
@@ -254,12 +258,11 @@ textarea {
 
 /* Block Card */
 .block-card {
-  background-color: var(--bg-input);
+  background-color: #fafafa;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 14px;
-  position: relative;
 }
 
 .block-header {
@@ -268,14 +271,14 @@ textarea {
   justify-content: space-between;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .block-title-input {
   background: transparent !important;
   border: 1px solid transparent !important;
   font-weight: 700 !important;
-  color: white !important;
+  color: var(--text-main) !important;
   font-size: 14px !important;
   padding: 2px 6px !important;
   width: auto !important;
@@ -285,7 +288,7 @@ textarea {
 .block-title-input:hover,
 .block-title-input:focus {
   border-color: var(--border-color) !important;
-  background-color: var(--bg-card) !important;
+  background-color: white !important;
 }
 
 /* Command Presets */
@@ -298,7 +301,7 @@ textarea {
 }
 
 .preset-chip {
-  background-color: var(--bg-card);
+  background-color: white;
   border: 1px solid var(--border-color);
   color: var(--text-muted);
   font-family: var(--font-mono);
@@ -311,14 +314,14 @@ textarea {
 }
 
 .preset-chip:hover {
-  border-color: var(--text-muted);
+  border-color: #94a3b8;
   color: var(--text-main);
 }
 
 .preset-chip.active {
   background-color: var(--primary-light);
   border-color: var(--primary);
-  color: var(--primary-hover);
+  color: var(--primary);
   font-weight: 600;
 }
 
@@ -353,19 +356,19 @@ textarea {
 }
 
 .btn-secondary {
-  background-color: var(--bg-hover);
+  background-color: white;
   border-color: var(--border-color);
   color: var(--text-main);
 }
 
 .btn-secondary:hover {
-  background-color: var(--border-color);
+  background-color: var(--bg-hover);
 }
 
 .btn-danger {
   background-color: transparent;
   color: var(--danger);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid #fca5a5;
   padding: 4px 8px;
   font-size: 11px;
 }
@@ -384,7 +387,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background-color: var(--bg-input);
+  background-color: #f1f5f9;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   font-family: var(--font-mono);
@@ -398,7 +401,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background-color: var(--bg-input);
+  background-color: #f8fafc;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   margin-bottom: 8px;
@@ -431,22 +434,22 @@ textarea {
   border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  background-color: var(--bg-card);
+  box-shadow: var(--shadow-md);
+  background-color: white;
   border: 1px solid var(--border-color);
   color: var(--text-main);
 }
 
 .toast-success {
   border-color: var(--success);
-  background-color: #064e3b;
-  color: #a7f3d0;
+  background-color: var(--success-bg);
+  color: #065f46;
 }
 
 .toast-error {
   border-color: var(--danger);
-  background-color: #7f1d1d;
-  color: #fecaca;
+  background-color: var(--danger-bg);
+  color: #991b1b;
 }
 
 .hidden {
@@ -468,6 +471,7 @@ textarea {
 /* Footer */
 footer {
   border-top: 1px solid var(--border-color);
+  background-color: white;
   padding: 16px;
   text-align: center;
   font-size: 12px;
