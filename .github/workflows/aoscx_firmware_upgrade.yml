@@ -1,0 +1,133 @@
+name: Aruba AOS-CX Firmware Upgrade
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_hosts:
+        description: 'Target Switch Hostnames / IPs (comma separated)'
+        required: true
+        default: '192.168.72.128'
+      image_url:
+        description: 'Firmware image source URL (HTTP/TFTP/SFTP)'
+        required: true
+        default: 'http://192.168.72.1/images/ArubaOS-CX.afi'
+      partition:
+        description: 'Target switch flash partition'
+        required: true
+        default: 'secondary'
+        type: choice
+        options:
+          - secondary
+          - primary
+      reboot_policy:
+        description: 'Reboot behavior'
+        required: true
+        default: 'stage_only'
+        type: choice
+        options:
+          - stage_only
+          - reboot_now
+      runner_type:
+        description: 'Runner environment'
+        required: true
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - ubuntu-latest
+
+jobs:
+  run-firmware-upgrade:
+    name: Execute Switch Firmware Upgrade
+    runs-on: ${{ inputs.runner_type }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ansible (if ubuntu-latest)
+        if: inputs.runner_type == 'ubuntu-latest'
+        run: |
+          sudo apt-get update && sudo apt-get install -y python3-pip
+          pip install ansible-core paramiko
+          ansible-galaxy collection install arubanetworks.aoscx
+
+      - name: Clean Previous Run Outputs
+        run: |
+          rm -f *_pre_check.txt *_upgrade_status.txt *_error.txt dynamic_inventory.ini
+
+      - name: Build Inventory
+        env:
+          TARGET_HOSTS: ${{ inputs.target_hosts }}
+        run: |
+          python3 -c "
+          import os
+          raw = os.environ.get('TARGET_HOSTS', '')
+          hosts = [h.strip() for h in raw.replace('\n', ',').replace(' ', ',').split(',') if h.strip()]
+          with open('dynamic_inventory.ini', 'w') as f:
+              f.write('[targets]\n')
+              for h in hosts:
+                  f.write(f'{h}\n')
+          "
+
+      - name: Run Firmware Upgrade Playbook
+        id: run_playbook
+        env:
+          SSH_USER: ${{ secrets.SSH_ANSIBLE_USER }}
+          SSH_PASS: ${{ secrets.SSH_ANSIBLE_PASSWORD }}
+          ANSIBLE_CONFIG: ${{ github.workspace }}/src/ansible.cfg
+        run: |
+          ansible-playbook -i dynamic_inventory.ini playbooks/run_command/aoscx_firmware_upgrade.yml \
+            -e "ansible_user=$SSH_USER" \
+            -e "ansible_password=$SSH_PASS" \
+            -e "image_url=${{ inputs.image_url }}" \
+            -e "partition=${{ inputs.partition }}" \
+            -e "reboot_policy=${{ inputs.reboot_policy }}"
+        continue-on-error: true
+
+      - name: Publish Firmware Upgrade Summary
+        run: |
+          echo "## 🚀 Aruba AOS-CX Firmware Upgrade Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered By** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Firmware Source** | \`${{ inputs.image_url }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Partition** | \`${{ inputs.partition }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Reboot Policy** | \`${{ inputs.reboot_policy }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Runner** | \`${{ inputs.runner_type }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 📋 Switch Upgrade & Staging Status" >> $GITHUB_STEP_SUMMARY
+          for f in *_upgrade_status.txt; do
+            [ -e "$f" ] || continue
+            host="${f%_upgrade_status.txt}"
+            echo "<details open><summary><b>Switch <code>$host</code> - Upgrade Status</b></summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat "$f" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "### 🔍 Pre-Upgrade Verification Checks" >> $GITHUB_STEP_SUMMARY
+          for p in *_pre_check.txt; do
+            [ -e "$p" ] || continue
+            host="${p%_pre_check.txt}"
+            echo "<details><summary><b>Switch <code>$host</code> - Pre-Upgrade Baseline</b></summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat "$p" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          done
+
+          for err in *_error.txt; do
+            [ -e "$err" ] || continue
+            host="${err%_error.txt}"
+            echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
+            echo "> **Switch <code>$host</code> encountered upgrade errors!**" >> $GITHUB_STEP_SUMMARY
+            echo "> \`\`\`text" >> $GITHUB_STEP_SUMMARY
+            cat "$err" >> $GITHUB_STEP_SUMMARY
+            echo "> \`\`\`" >> $GITHUB_STEP_SUMMARY
+          done

@@ -131,9 +131,31 @@ ROM: Version FL.01.08
 
 ---
 
-## 🛠️ Adding More Playbooks
+## 🛠️ Adding More Playbooks (Schema-Driven Architecture)
 
-To add new playbooks:
-1. Place your new playbook under `playbooks/<category>/<playbook_name>.yml`.
-2. Create a corresponding workflow in `.github/workflows/<workflow_name>.yml` with `workflow_dispatch` inputs.
-3. Include the Step Summary step to automatically display the playbook output.
+Adding a new automation playbook takes just 3 modular steps with **zero changes needed to core portal code**:
+
+1. **Write the Ansible Playbook**:
+   Place your playbook under `playbooks/<category>/<playbook_name>.yml`.
+2. **Create the GitHub Actions Workflow**:
+   Create `.github/workflows/<playbook_name>.yml` with `workflow_dispatch` inputs and `$GITHUB_STEP_SUMMARY` reporting.
+3. **Define the UI Schema (`docs/playbooks/<playbook_name>.js`)**:
+   Create a definition file exporting metadata, input fields, and workflow mapping:
+   ```javascript
+   window.PLAYBOOK_CATALOG['my_playbook'] = {
+     id: 'my_playbook',
+     title: 'My Custom Network Task',
+     description: 'Brief description shown on the card.',
+     category: 'Maintenance',
+     icon: '🔧',
+     workflowFile: 'my_playbook.yml',
+     type: 'fields',
+     fields: [
+       { id: 'target_hosts', label: 'Target Switches', type: 'textarea', required: true }
+     ],
+     buildPayload: (data) => ({ target_hosts: data.formValues.target_hosts, runner_type: data.runnerType })
+   };
+   ```
+4. **Include the script tag in `docs/index.html`**:
+   Add `<script src="playbooks/<playbook_name>.js"></script>`.
+   The web portal will automatically display the new playbook card and render its form dynamically!

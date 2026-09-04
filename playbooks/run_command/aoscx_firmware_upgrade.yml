@@ -1,0 +1,96 @@
+- name: Aruba AOS-CX Firmware Upgrade & Staging
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_host: "{{ inventory_hostname }}"
+    ansible_connection: network_cli
+    ansible_network_os: arubanetworks.aoscx.aoscx
+    ansible_network_cli_ssh_type: paramiko
+    target_partition: "{{ partition | default('secondary') }}"
+    reboot_switch: "{{ reboot_policy | default('stage_only') }}"
+
+  tasks:
+    - name: 1. Pre-Upgrade Safety Check - Current Version & Boot Image
+      arubanetworks.aoscx.aoscx_command:
+        commands:
+          - show version
+          - show images
+          - show boot-history
+      register: pre_check_res
+      ignore_errors: true
+      ignore_unreachable: true
+
+    - name: Save Pre-check details to file
+      ansible.builtin.copy:
+        content: |
+          ================================================================================
+          PRE-UPGRADE CURRENT STATUS: {{ inventory_hostname }}
+          ================================================================================
+          VERSION:
+          {{ pre_check_res.stdout[0] | default('N/A') | trim }}
+
+          IMAGES PARTITION STATUS:
+          {{ pre_check_res.stdout[1] | default('N/A') | trim }}
+        dest: "{{ inventory_hostname }}_pre_check.txt"
+      delegate_to: localhost
+      when: pre_check_res.stdout is defined
+
+    - name: 2. Save Active Running Config
+      arubanetworks.aoscx.aoscx_command:
+        commands:
+          - copy running-config startup-config
+      register: save_config_res
+      ignore_errors: true
+      when: pre_check_res.failed is not defined or not pre_check_res.failed
+
+    - name: 3. Transfer and Stage Firmware Image to {{ target_partition }}
+      arubanetworks.aoscx.aoscx_command:
+        commands:
+          - "copy {{ image_url }} {{ target_partition }}"
+      register: copy_image_res
+      ignore_errors: true
+      when: image_url is defined and image_url != ''
+
+    - name: 4. Set Default Boot Partition to {{ target_partition }}
+      arubanetworks.aoscx.aoscx_command:
+        commands:
+          - "boot set-default {{ target_partition }}"
+      register: boot_set_res
+      ignore_errors: true
+      when: copy_image_res.failed is not defined or not copy_image_res.failed
+
+    - name: 5. Conditional Reboot
+      arubanetworks.aoscx.aoscx_command:
+        commands:
+          - "boot system {{ target_partition }}"
+      register: reboot_res
+      ignore_errors: true
+      when: reboot_switch == 'reboot_now' and (boot_set_res.failed is not defined or not boot_set_res.failed)
+
+    - name: Save Upgrade Log
+      ansible.builtin.copy:
+        content: |
+          ================================================================================
+          UPGRADE EXECUTION SUMMARY: {{ inventory_hostname }}
+          ================================================================================
+          Image URL: {{ image_url | default('N/A') }}
+          Target Partition: {{ target_partition }}
+          Reboot Policy: {{ reboot_switch }}
+          
+          IMAGE COPY RESULT:
+          {{ copy_image_res.stdout[0] | default('Completed / Scheduled') | trim }}
+
+          BOOT PARTITION SET:
+          {{ boot_set_res.stdout[0] | default('Set to ' + target_partition) | trim }}
+
+          REBOOT STATUS:
+          {{ 'Reboot command issued' if reboot_switch == 'reboot_now' else 'Staged only (Reboot deferred)' }}
+        dest: "{{ inventory_hostname }}_upgrade_status.txt"
+      delegate_to: localhost
+
+    - name: Save Upgrade Error if Failed
+      ansible.builtin.copy:
+        content: "Upgrade failure on {{ inventory_hostname }}: {{ copy_image_res.msg | default(pre_check_res.msg | default('Unknown execution error')) }}"
+        dest: "{{ inventory_hostname }}_error.txt"
+      delegate_to: localhost
+      when: (pre_check_res.failed is defined and pre_check_res.failed) or (copy_image_res.failed is defined and copy_image_res.failed)

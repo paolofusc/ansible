@@ -1,0 +1,96 @@
+name: Network Ping Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_hosts:
+        description: 'Target IP addresses or hostnames (comma/space separated)'
+        required: true
+        default: '192.168.72.128'
+      ping_count:
+        description: 'Number of ICMP ping packets to send'
+        required: true
+        default: '3'
+      runner_type:
+        description: 'Runner environment'
+        required: true
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - ubuntu-latest
+
+jobs:
+  run-ping-test:
+    name: Execute Network Ping
+    runs-on: ${{ inputs.runner_type }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ansible (if ubuntu-latest)
+        if: inputs.runner_type == 'ubuntu-latest'
+        run: |
+          sudo apt-get update && sudo apt-get install -y python3-pip
+          pip install ansible-core
+
+      - name: Clean Previous Run Outputs
+        run: |
+          rm -f *_output.txt *_error.txt dynamic_inventory.ini
+
+      - name: Build Inventory
+        env:
+          TARGET_HOSTS: ${{ inputs.target_hosts }}
+        run: |
+          python3 -c "
+          import os
+          raw = os.environ.get('TARGET_HOSTS', '')
+          hosts = [h.strip() for h in raw.replace('\n', ',').replace(' ', ',').split(',') if h.strip()]
+          with open('dynamic_inventory.ini', 'w') as f:
+              f.write('[targets]\n')
+              for h in hosts:
+                  f.write(f'{h}\n')
+          "
+
+      - name: Run Ansible Ping Playbook
+        id: run_playbook
+        env:
+          ANSIBLE_CONFIG: ${{ github.workspace }}/src/ansible.cfg
+        run: |
+          ansible-playbook -i dynamic_inventory.ini playbooks/run_command/ping_test.yml \
+            -e "ping_count=${{ inputs.ping_count }}"
+        continue-on-error: true
+
+      - name: Generate Ping Step Summary
+        run: |
+          echo "## 📡 Network Ping Reachability Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered By** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Packet Count** | \`${{ inputs.ping_count }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Runner** | \`${{ inputs.runner_type }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 📋 Ping Results" >> $GITHUB_STEP_SUMMARY
+          for f in *_output.txt; do
+            [ -e "$f" ] || continue
+            host="${f%_output.txt}"
+            echo "<details open><summary><b>Host <code>$host</code> - Reachable ✅</b></summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat "$f" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          done
+
+          for err in *_error.txt; do
+            [ -e "$err" ] || continue
+            host="${err%_error.txt}"
+            echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
+            echo "> **Host <code>$host</code> - Ping Failed / Unreachable ❌**" >> $GITHUB_STEP_SUMMARY
+            echo "> \`\`\`text" >> $GITHUB_STEP_SUMMARY
+            cat "$err" >> $GITHUB_STEP_SUMMARY
+            echo "> \`\`\`" >> $GITHUB_STEP_SUMMARY
+          done

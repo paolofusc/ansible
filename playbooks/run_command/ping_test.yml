@@ -1,14 +1,27 @@
-- name: Connectivity Ping Test
+- name: ICMP Reachability Ping Test
   hosts: all
   gather_facts: false
+  vars:
+    count: "{{ ping_count | default(3) }}"
 
   tasks:
-    - name: Ping target switch / host
-      ansible.builtin.ping:
-      register: ping_result
+    - name: Execute ICMP ping from runner
+      ansible.builtin.command:
+        cmd: "ping -c {{ count }} -W 2 {{ inventory_hostname }}"
+      delegate_to: localhost
+      register: ping_res
+      ignore_errors: true
 
-    - name: Save ping result to local file
+    - name: Save ping output to file
       ansible.builtin.copy:
-        content: "Ping to {{ inventory_hostname }} succeeded: {{ ping_result.ping }}"
+        content: "{{ ping_res.stdout | default(ping_res.stderr | default('No output')) }}"
         dest: "{{ inventory_hostname }}_output.txt"
       delegate_to: localhost
+      when: ping_res.rc == 0
+
+    - name: Save ping error to file
+      ansible.builtin.copy:
+        content: "Ping failed for {{ inventory_hostname }}: {{ ping_res.stderr | default(ping_res.stdout | default('Packet loss or host unreachable')) }}"
+        dest: "{{ inventory_hostname }}_error.txt"
+      delegate_to: localhost
+      when: ping_res.rc != 0

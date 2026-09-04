@@ -77,27 +77,45 @@
         </div>
       </section>
 
-      <!-- Multi-Block Form -->
+      <!-- Step 1: Select Automation Playbook -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#128218; Step 1: Select Automation Playbook</div>
+          <span id="playbookCountBadge" class="badge-tag">3 Available</span>
+        </div>
+        <div id="playbookGrid" class="playbook-grid">
+          <!-- Dynamically populated from window.PLAYBOOK_CATALOG -->
+        </div>
+      </div>
+
+      <!-- Step 2: Dynamic Form for Selected Playbook -->
       <form id="actionForm">
 
-        <div class="card">
+        <div class="card" id="playbookFormCard">
           <div class="card-header">
             <div class="card-title">
-              &#128421; Target Device Blocks
-              <span id="blocksCountBadge" class="badge-tag">1 / 10 Blocks</span>
+              <span id="selectedPlaybookIcon">&#9889;</span>
+              <span id="selectedPlaybookTitle">Aruba AOS-CX Run Commands</span>
+              <span id="selectedPlaybookBadge" class="badge-tag">Multi-Block</span>
             </div>
-            <button id="addBlockBtn" type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;">
-              + Add Block
-            </button>
+            <div id="multiBlockControls">
+              <button id="addBlockBtn" type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;">
+                + Add Block
+              </button>
+            </div>
           </div>
 
-          <!-- Dynamic Blocks Container -->
-          <div id="blocksContainer">
-            <!-- Dynamically populated by app.js -->
+          <div id="selectedPlaybookDesc" style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5;">
+            Execute CLI show and diagnostic commands across up to 10 independent device blocks.
           </div>
 
-          <!-- Totals Bar -->
-          <div class="stats-bar">
+          <!-- Dynamic Inputs Container -->
+          <div id="dynamicInputsContainer">
+            <!-- Dynamically populated by app.js based on selected playbook -->
+          </div>
+
+          <!-- Totals Bar (shown for multi-block) -->
+          <div id="statsBar" class="stats-bar">
             <div>
               Total Blocks: <strong id="totalBlocksSummary" style="color: var(--primary-hover);">1</strong> &bull;
               Total Devices: <strong id="totalDevicesSummary" style="color: var(--primary-hover);">0</strong>
@@ -108,15 +126,15 @@
           <!-- Execution Settings -->
           <div class="grid-2">
             <div class="form-group">
-              <label for="runnerType">Runner Type</label>
+              <label for="runnerType">Runner Environment</label>
               <select id="runnerType">
                 <option value="self-hosted" selected>self-hosted (Corporate network runner)</option>
                 <option value="ubuntu-latest">ubuntu-latest (Cloud runner)</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="workflowFile">Workflow File</label>
-              <input type="text" id="workflowFile" value="aoscx_run_command.yml">
+              <label for="workflowFile">Target Workflow</label>
+              <input type="text" id="workflowFile" value="aoscx_run_command.yml" readonly style="opacity: 0.85;">
             </div>
           </div>
 
@@ -206,6 +224,10 @@
     Aruba AOS-CX Ansible Automation &bull; 100% Offline Standalone Interface
   </footer>
 
+  <!-- Modular Playbook Definitions -->
+  <script src="playbooks/aoscx_run_command.js"></script>
+  <script src="playbooks/aoscx_firmware_upgrade.js"></script>
+  <script src="playbooks/ping_test.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,18 +1,8 @@
-// Aruba AOS-CX Automation Portal - Offline & GitHub Enterprise Compatible
+// Aruba AOS-CX Automation Portal - Dynamic Schema-Driven Playbook Engine
 document.addEventListener('DOMContentLoaded', () => {
   const MAX_BLOCKS = 10;
-  const PRESET_COMMANDS = [
-    'show version',
-    'show running-config',
-    'show vlan',
-    'show interface brief',
-    'show lldp info remote-device',
-    'show mac-address-table',
-    'show ip route',
-    'show environment'
-  ];
 
-  // DOM Elements
+  // DOM Elements - Settings
   const settingsPanel = document.getElementById('settingsPanel');
   const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
   const closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -28,18 +18,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearTokenBtn = document.getElementById('clearTokenBtn');
   const repoLink = document.getElementById('repoLink');
 
-  const actionForm = document.getElementById('actionForm');
-  const blocksContainer = document.getElementById('blocksContainer');
+  // DOM Elements - Playbook Selector
+  const playbookGrid = document.getElementById('playbookGrid');
+  const playbookCountBadge = document.getElementById('playbookCountBadge');
+  const selectedPlaybookIcon = document.getElementById('selectedPlaybookIcon');
+  const selectedPlaybookTitle = document.getElementById('selectedPlaybookTitle');
+  const selectedPlaybookBadge = document.getElementById('selectedPlaybookBadge');
+  const selectedPlaybookDesc = document.getElementById('selectedPlaybookDesc');
+  const multiBlockControls = document.getElementById('multiBlockControls');
   const addBlockBtn = document.getElementById('addBlockBtn');
-  const blocksCountBadge = document.getElementById('blocksCountBadge');
+  const statsBar = document.getElementById('statsBar');
   const totalBlocksSummary = document.getElementById('totalBlocksSummary');
   const totalDevicesSummary = document.getElementById('totalDevicesSummary');
+  const dynamicInputsContainer = document.getElementById('dynamicInputsContainer');
 
+  // DOM Elements - Form & Action
+  const actionForm = document.getElementById('actionForm');
   const runnerType = document.getElementById('runnerType');
   const workflowFile = document.getElementById('workflowFile');
   const dispatchBtn = document.getElementById('dispatchBtn');
   const dispatchBtnText = document.getElementById('dispatchBtnText');
 
+  // DOM Elements - Tracker
   const trackerEmptyState = document.getElementById('trackerEmptyState');
   const trackerActiveState = document.getElementById('trackerActiveState');
   const runTimer = document.getElementById('runTimer');
@@ -56,8 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let timerInterval = null;
   let runStartTime = null;
 
-  // Blocks State
-  let blocks = [
+  // Active State
+  let activePlaybookId = 'aoscx_run_command';
+  let multiBlocks = [
     {
       id: 'block_1',
       name: 'Block 1',
@@ -67,6 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   ];
 
+  // Store form field values for field-based playbooks
+  let dynamicFieldValues = {};
+
+  // 1. API & Server URL Helpers
   function getApiBaseUrl() {
     let raw = apiUrlInput.value.trim() || localStorage.getItem('ansible_gh_api_url') || '';
     if (!raw) {
@@ -76,7 +81,12 @@ document.addEventListener('DOMContentLoaded', () => {
         raw = 'https://api.github.com';
       }
     }
-    return raw.replace(/\/+$/, '');
+    raw = raw.replace(/\/+$/, '');
+    // If corporate GHE URL without /api/v3, auto-append
+    if (!raw.includes('api.github.com') && !raw.includes('/api/v3')) {
+      raw = `${raw}/api/v3`;
+    }
+    return raw;
   }
 
   function getWebBaseUrl() {
@@ -87,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'https://github.com';
   }
 
-  // 1. Settings Setup
+  // 2. Settings Management
   function initConfig() {
     let savedApi = localStorage.getItem('ansible_gh_api_url') || '';
     if (!savedApi) {
@@ -123,8 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       settingsPanel.classList.remove('hidden');
     }
-
-    renderBlocks();
   }
 
   function updateConfigUI(owner, repo, token) {
@@ -188,7 +196,82 @@ document.addEventListener('DOMContentLoaded', () => {
     updateConfigUI(repoOwnerInput.value.trim(), repoNameInput.value.trim(), '');
   });
 
-  // 2. Helper: Parse Devices
+  // 3. Playbook Catalog Engine
+  function getCatalog() {
+    return window.PLAYBOOK_CATALOG || {};
+  }
+
+  function getActivePlaybook() {
+    const catalog = getCatalog();
+    return catalog[activePlaybookId] || Object.values(catalog)[0];
+  }
+
+  function renderPlaybookSelector() {
+    const catalog = getCatalog();
+    const entries = Object.values(catalog);
+
+    playbookCountBadge.textContent = `${entries.length} Playbooks Available`;
+    playbookGrid.innerHTML = '';
+
+    entries.forEach(playbook => {
+      const isSelected = playbook.id === activePlaybookId;
+      const card = document.createElement('div');
+      card.className = `playbook-card ${isSelected ? 'selected' : ''}`;
+      card.dataset.id = playbook.id;
+
+      card.innerHTML = `
+        <div>
+          <div class="playbook-card-top">
+            <span class="playbook-card-icon">${playbook.icon || '📦'}</span>
+            <span class="badge-tag">${escapeHtml(playbook.badge || playbook.category || 'Playbook')}</span>
+          </div>
+          <div class="playbook-card-title">${escapeHtml(playbook.title)}</div>
+          <div class="playbook-card-desc">${escapeHtml(playbook.description)}</div>
+        </div>
+        <div class="playbook-card-footer">
+          <span>Workflow: <code>${escapeHtml(playbook.workflowFile)}</code></span>
+          <span>${isSelected ? '● Active' : 'Select →'}</span>
+        </div>
+      `;
+
+      card.addEventListener('click', () => {
+        if (activePlaybookId !== playbook.id) {
+          activePlaybookId = playbook.id;
+          renderPlaybookSelector();
+          renderActivePlaybookForm();
+        }
+      });
+
+      playbookGrid.appendChild(card);
+    });
+  }
+
+  function renderActivePlaybookForm() {
+    const playbook = getActivePlaybook();
+    if (!playbook) return;
+
+    selectedPlaybookIcon.textContent = playbook.icon || '📦';
+    selectedPlaybookTitle.textContent = playbook.title;
+    selectedPlaybookBadge.textContent = playbook.badge || playbook.category || 'Playbook';
+    selectedPlaybookDesc.textContent = playbook.description;
+    workflowFile.value = playbook.workflowFile;
+
+    dynamicInputsContainer.innerHTML = '';
+
+    if (playbook.type === 'multi_block') {
+      multiBlockControls.style.display = 'block';
+      statsBar.style.display = 'flex';
+      renderMultiBlockForm();
+    } else {
+      multiBlockControls.style.display = 'none';
+      statsBar.style.display = 'none';
+      renderFieldsForm(playbook);
+    }
+
+    updateDispatchButtonText();
+  }
+
+  // 4. Multi-Block Renderer (for aoscx_run_command)
   function parseDevices(raw) {
     if (!raw) return [];
     return raw
@@ -199,11 +282,13 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(Boolean);
   }
 
-  // 3. Render Blocks UI
-  function renderBlocks() {
-    blocksContainer.innerHTML = '';
+  function renderMultiBlockForm() {
+    const playbook = getActivePlaybook();
+    const presets = playbook.presets || [];
 
-    blocks.forEach((block, index) => {
+    dynamicInputsContainer.innerHTML = '';
+
+    multiBlocks.forEach((block, index) => {
       const blockIndex = index + 1;
       const parsedDevs = parseDevices(block.devices);
       const customCmdCount = (block.customCommands || '').split('\n').filter(c => c.trim()).length;
@@ -230,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="badge-tag">
               ${totalCmdCount} ${totalCmdCount === 1 ? 'cmd' : 'cmds'}
             </span>
-            ${blocks.length > 1 ? `
+            ${multiBlocks.length > 1 ? `
             <button type="button" class="btn btn-danger delete-block-btn" data-id="${block.id}">
               Delete
             </button>` : ''}
@@ -248,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="form-group" style="margin-bottom: 0;">
           <label>Commands for this Block</label>
           <div class="preset-grid">
-            ${PRESET_COMMANDS.map(cmd => {
+            ${presets.map(cmd => {
               const isSelected = block.selectedPresets.includes(cmd);
               return `
                 <button type="button" 
@@ -269,18 +354,18 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      blocksContainer.appendChild(card);
+      dynamicInputsContainer.appendChild(card);
     });
 
-    attachBlockEvents();
-    updateGrandTotals();
+    attachMultiBlockEvents();
+    updateMultiBlockTotals();
   }
 
-  function attachBlockEvents() {
+  function attachMultiBlockEvents() {
     document.querySelectorAll('.block-title-input').forEach(input => {
       input.addEventListener('input', (e) => {
         const id = e.target.dataset.id;
-        const block = blocks.find(b => b.id === id);
+        const block = multiBlocks.find(b => b.id === id);
         if (block) block.name = e.target.value;
       });
     });
@@ -288,10 +373,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.block-devices-input').forEach(textarea => {
       textarea.addEventListener('input', (e) => {
         const id = e.target.dataset.id;
-        const block = blocks.find(b => b.id === id);
+        const block = multiBlocks.find(b => b.id === id);
         if (block) {
           block.devices = e.target.value;
-          updateGrandTotals();
+          updateMultiBlockTotals();
         }
       });
     });
@@ -300,14 +385,14 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.id;
         const cmd = btn.dataset.cmd;
-        const block = blocks.find(b => b.id === id);
+        const block = multiBlocks.find(b => b.id === id);
         if (block) {
           if (block.selectedPresets.includes(cmd)) {
             block.selectedPresets = block.selectedPresets.filter(c => c !== cmd);
           } else {
             block.selectedPresets.push(cmd);
           }
-          renderBlocks();
+          renderMultiBlockForm();
         }
       });
     });
@@ -315,54 +400,52 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.block-custom-commands').forEach(input => {
       input.addEventListener('input', (e) => {
         const id = e.target.dataset.id;
-        const block = blocks.find(b => b.id === id);
+        const block = multiBlocks.find(b => b.id === id);
         if (block) {
           block.customCommands = e.target.value;
-          updateGrandTotals();
+          updateMultiBlockTotals();
         }
       });
     });
 
     document.querySelectorAll('.delete-block-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        if (blocks.length <= 1) return;
+        if (multiBlocks.length <= 1) return;
         const id = btn.dataset.id;
-        blocks = blocks.filter(b => b.id !== id);
-        renderBlocks();
+        multiBlocks = multiBlocks.filter(b => b.id !== id);
+        renderMultiBlockForm();
         showToast('Block removed', 'info');
       });
     });
   }
 
-  // 4. Add Block Handler
   addBlockBtn.addEventListener('click', () => {
-    if (blocks.length >= MAX_BLOCKS) {
+    if (multiBlocks.length >= MAX_BLOCKS) {
       showToast(`Maximum ${MAX_BLOCKS} blocks reached.`, 'error');
       return;
     }
-    const nextNum = blocks.length + 1;
-    blocks.push({
+    const nextNum = multiBlocks.length + 1;
+    multiBlocks.push({
       id: 'block_' + Math.random().toString(36).substring(2, 9),
       name: `Block ${nextNum}`,
       devices: '',
       selectedPresets: ['show version'],
       customCommands: ''
     });
-    renderBlocks();
+    renderMultiBlockForm();
     showToast(`Added Block ${nextNum}`, 'success');
   });
 
-  function updateGrandTotals() {
+  function updateMultiBlockTotals() {
     let totalDevices = 0;
-    blocks.forEach(b => {
+    multiBlocks.forEach(b => {
       totalDevices += parseDevices(b.devices).length;
     });
 
-    blocksCountBadge.textContent = `${blocks.length} / ${MAX_BLOCKS} Blocks`;
-    totalBlocksSummary.textContent = blocks.length;
+    totalBlocksSummary.textContent = multiBlocks.length;
     totalDevicesSummary.textContent = totalDevices;
 
-    if (blocks.length >= MAX_BLOCKS) {
+    if (multiBlocks.length >= MAX_BLOCKS) {
       addBlockBtn.disabled = true;
       addBlockBtn.textContent = 'Max 10 Blocks';
     } else {
@@ -370,7 +453,73 @@ document.addEventListener('DOMContentLoaded', () => {
       addBlockBtn.textContent = '+ Add Block';
     }
 
-    dispatchBtnText.textContent = `🚀 Initiate Action Workflow (${blocks.length} ${blocks.length === 1 ? 'Block' : 'Blocks'})`;
+    updateDispatchButtonText();
+  }
+
+  // 5. Generic Fields Renderer (for ping_test, firmware_upgrade, etc.)
+  function renderFieldsForm(playbook) {
+    dynamicInputsContainer.innerHTML = '';
+    const fields = playbook.fields || [];
+
+    fields.forEach(field => {
+      const fieldId = field.id;
+      const currentVal = dynamicFieldValues[fieldId] !== undefined ? dynamicFieldValues[fieldId] : (field.defaultValue || '');
+      dynamicFieldValues[fieldId] = currentVal;
+
+      const group = document.createElement('div');
+      group.className = 'form-group';
+
+      let inputHtml = '';
+      if (field.type === 'textarea') {
+        inputHtml = `
+          <textarea id="field_${fieldId}" 
+            rows="3" 
+            placeholder="${escapeHtml(field.placeholder || '')}">${escapeHtml(currentVal)}</textarea>
+        `;
+      } else if (field.type === 'select') {
+        inputHtml = `
+          <select id="field_${fieldId}">
+            ${(field.options || []).map(opt => `
+              <option value="${escapeHtml(opt.value)}" ${opt.value === currentVal ? 'selected' : ''}>
+                ${escapeHtml(opt.label)}
+              </option>
+            `).join('')}
+          </select>
+        `;
+      } else {
+        inputHtml = `
+          <input type="text" id="field_${fieldId}" 
+            value="${escapeHtml(currentVal)}" 
+            placeholder="${escapeHtml(field.placeholder || '')}">
+        `;
+      }
+
+      group.innerHTML = `
+        <label for="field_${fieldId}">${escapeHtml(field.label)} ${field.required ? '<span style="color: var(--danger);">*</span>' : ''}</label>
+        ${inputHtml}
+        ${field.helperText ? `<div class="helper-text">${escapeHtml(field.helperText)}</div>` : ''}
+      `;
+
+      dynamicInputsContainer.appendChild(group);
+
+      const el = group.querySelector(`#field_${fieldId}`);
+      if (el) {
+        el.addEventListener('input', (e) => {
+          dynamicFieldValues[fieldId] = e.target.value;
+        });
+      }
+    });
+  }
+
+  function updateDispatchButtonText() {
+    const playbook = getActivePlaybook();
+    if (!playbook) return;
+
+    if (playbook.type === 'multi_block') {
+      dispatchBtnText.textContent = `🚀 Initiate Action Workflow (${multiBlocks.length} ${multiBlocks.length === 1 ? 'Block' : 'Blocks'})`;
+    } else {
+      dispatchBtnText.textContent = `🚀 Initiate Action Workflow (${playbook.title})`;
+    }
   }
 
   function escapeHtml(str) {
@@ -384,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }[m]));
   }
 
-  // 5. Submit & Action Dispatch
+  // 6. Form Submission & Action Dispatch
   actionForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -393,6 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const repo = repoNameInput.value.trim();
     const branch = workflowBranchInput.value.trim() || 'main';
     const token = githubTokenInput.value.trim();
+    const runner = runnerType.value;
 
     if (!owner || !repo) {
       showToast('Please specify the Repository Owner and Name in Settings.', 'error');
@@ -406,49 +556,93 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Validate blocks
-    const compiledBlocks = [];
-    let totalDeviceCount = 0;
-    let totalCommandCount = 0;
-
-    for (let i = 0; i < blocks.length; i++) {
-      const b = blocks[i];
-      const devs = parseDevices(b.devices);
-      if (devs.length === 0) {
-        showToast(`Please enter switch IPs for ${b.name || 'Block ' + (i + 1)}.`, 'error');
-        return;
-      }
-
-      const customCmds = (b.customCommands || '')
-        .replace(/[\r\n]+/g, ',')
-        .split(',')
-        .map(c => c.trim())
-        .filter(Boolean);
-
-      const allCmds = Array.from(new Set([...b.selectedPresets, ...customCmds]));
-      if (allCmds.length === 0) {
-        showToast(`Please select at least one command for ${b.name || 'Block ' + (i + 1)}.`, 'error');
-        return;
-      }
-
-      totalDeviceCount += devs.length;
-      totalCommandCount += allCmds.length;
-
-      compiledBlocks.push({
-        name: b.name || `Block ${i + 1}`,
-        devices: devs,
-        commands: allCmds
-      });
+    const playbook = getActivePlaybook();
+    if (!playbook) {
+      showToast('No playbook selected.', 'error');
+      return;
     }
 
-    const runner = runnerType.value;
-    const workflow = workflowFile.value.trim();
+    let payloadInputs = {};
+    let trackingDevCount = 0;
+    let trackingBlockCount = 1;
+    let trackingCmdCount = 1;
+
+    // Validate based on playbook type
+    if (playbook.type === 'multi_block') {
+      const compiledBlocks = [];
+      let totalDeviceCount = 0;
+      let totalCommandCount = 0;
+
+      for (let i = 0; i < multiBlocks.length; i++) {
+        const b = multiBlocks[i];
+        const devs = parseDevices(b.devices);
+        if (devs.length === 0) {
+          showToast(`Please enter switch IPs for ${b.name || 'Block ' + (i + 1)}.`, 'error');
+          return;
+        }
+
+        const customCmds = (b.customCommands || '')
+          .replace(/[\r\n]+/g, ',')
+          .split(',')
+          .map(c => c.trim())
+          .filter(Boolean);
+
+        const allCmds = Array.from(new Set([...b.selectedPresets, ...customCmds]));
+        if (allCmds.length === 0) {
+          showToast(`Please select at least one command for ${b.name || 'Block ' + (i + 1)}.`, 'error');
+          return;
+        }
+
+        totalDeviceCount += devs.length;
+        totalCommandCount += allCmds.length;
+
+        compiledBlocks.push({
+          name: b.name || `Block ${i + 1}`,
+          devices: devs,
+          commands: allCmds
+        });
+      }
+
+      trackingDevCount = totalDeviceCount;
+      trackingBlockCount = compiledBlocks.length;
+      trackingCmdCount = totalCommandCount;
+
+      payloadInputs = playbook.buildPayload({
+        compiledBlocks: compiledBlocks,
+        runnerType: runner
+      });
+
+    } else {
+      // Validate field-based playbook
+      const fields = playbook.fields || [];
+      const formValues = {};
+
+      for (let f of fields) {
+        const val = dynamicFieldValues[f.id] !== undefined ? dynamicFieldValues[f.id].trim() : '';
+        if (f.required && !val) {
+          showToast(`Field "${f.label}" is required.`, 'error');
+          const el = document.getElementById(`field_${f.id}`);
+          if (el) el.focus();
+          return;
+        }
+        formValues[f.id] = val;
+      }
+
+      if (formValues.target_hosts) {
+        trackingDevCount = parseDevices(formValues.target_hosts).length;
+      }
+
+      payloadInputs = playbook.buildPayload({
+        formValues: formValues,
+        runnerType: runner
+      });
+    }
 
     dispatchBtn.disabled = true;
     dispatchBtnText.textContent = 'Dispatching to Runner...';
 
     try {
-      const dispatchUrl = `${apiBase}/repos/${owner}/${repo}/actions/workflows/${workflow}/dispatches`;
+      const dispatchUrl = `${apiBase}/repos/${owner}/${repo}/actions/workflows/${playbook.workflowFile}/dispatches`;
       const response = await fetch(dispatchUrl, {
         method: 'POST',
         headers: {
@@ -458,10 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         body: JSON.stringify({
           ref: branch,
-          inputs: {
-            blocks_json: JSON.stringify(compiledBlocks),
-            runner_type: runner
-          }
+          inputs: payloadInputs
         })
       });
 
@@ -470,26 +661,26 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(errorData.message || `API error: ${response.status} ${response.statusText}`);
       }
 
-      showToast(`Action dispatched for ${compiledBlocks.length} block(s)!`, 'success');
-      startTrackingRun(apiBase, owner, repo, token, compiledBlocks.length, totalDeviceCount, totalCommandCount);
+      showToast(`Action dispatched for "${playbook.title}"!`, 'success');
+      startTrackingRun(apiBase, owner, repo, token, playbook.workflowFile, trackingBlockCount, trackingDevCount, trackingCmdCount);
 
     } catch (err) {
       console.error(err);
       showToast(err.message, 'error');
     } finally {
       dispatchBtn.disabled = false;
-      updateGrandTotals();
+      updateDispatchButtonText();
     }
   });
 
-  // 6. Tracking & Polling
-  function startTrackingRun(apiBase, owner, repo, token, blockCount, devCount, cmdCount) {
+  // 7. Live Tracker & Polling
+  function startTrackingRun(apiBase, owner, repo, token, targetWorkflow, blockCount, devCount, cmdCount) {
     trackerEmptyState.classList.add('hidden');
     trackerActiveState.classList.remove('hidden');
 
     runBlocksBadge.textContent = `${blockCount} ${blockCount === 1 ? 'Block' : 'Blocks'}`;
     runTargetBadge.textContent = `${devCount} ${devCount === 1 ? 'Device' : 'Devices'}`;
-    runCommandBadge.textContent = `${cmdCount} ${cmdCount === 1 ? 'Command' : 'Commands'}`;
+    runCommandBadge.textContent = getActivePlaybook().title;
 
     runStatusBadge.textContent = 'Queued';
     runStatusBadge.style.color = '#f59e0b';
@@ -568,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
     runTimer.textContent = `${mins}:${secs}`;
   }
 
-  // 7. Toast
+  // 8. Toast Notifications
   function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast-item ${type === 'success' ? 'toast-success' : type === 'error' ? 'toast-error' : ''}`;
@@ -582,6 +773,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4000);
   }
 
-  // Initialize
+  // Initial Boot
   initConfig();
+  renderPlaybookSelector();
+  renderActivePlaybookForm();
 });
